@@ -60,6 +60,13 @@
   outline: none;
 }
 
+/* Fix option tag contrast in various themes and browsers */
+.vehicleSelect option {
+  background-color: var(--bg-card);
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
 /* Tabs/Filtros por Categoría (H7 - Flexibilidad y eficiencia de uso) */
 .tabsContainer {
   display: flex;
@@ -137,12 +144,21 @@
   justify-content: space-between;
   position: relative;
   overflow: hidden;
+  height: 275px; /* Fixed height so all cards are perfectly uniform */
   transition: transform var(--transition-fast), box-shadow var(--transition-fast);
 }
 
 .pieceCard:hover {
   transform: translateY(-2px);
   box-shadow: 0 6px 0 var(--border-shadow);
+}
+
+/* Contenido frontal de la tarjeta */
+.cardFrontContent {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  justify-content: space-between;
 }
 
 /* Encabezado de la Tarjeta */
@@ -282,15 +298,15 @@
   border-right: 3px solid var(--duo-red-dark);
 }
 
-/* Detalles de la Pieza (H6 - Reconocimiento antes que recuerdo) */
+/* Detalles de la Pieza (H6 - Reconocimiento antes que recuerdo) - Static inside slideUpPanel */
 .detailsGrid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 12px;
+  gap: 10px;
   background-color: var(--bg-input);
-  padding: 12px;
+  padding: 10px;
   border-radius: 12px;
-  margin-bottom: 20px;
+  margin-bottom: 12px;
   border: 1px solid var(--border-color);
 }
 
@@ -300,16 +316,16 @@
 }
 
 .detailLabel {
-  font-size: 0.75rem;
+  font-size: 0.72rem;
   font-weight: 700;
   color: var(--text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.3px;
-  margin-bottom: 2px;
+  margin-bottom: 1px;
 }
 
 .detailValue {
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   font-weight: 800;
   color: var(--text-primary);
 }
@@ -323,6 +339,99 @@
 .actionButton {
   flex: 1;
 }
+
+/* Indicador visual de expansión (H8) */
+.expandIndicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 0.75rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-secondary);
+  margin-top: auto; /* Aligns indicator at the bottom of front content */
+  padding: 8px;
+  border-radius: 10px;
+  background-color: var(--bg-input);
+  border: 1px dashed var(--border-color);
+  cursor: pointer;
+  transition: opacity 0.2s ease, background-color 0.2s ease;
+}
+
+.expandIndicator svg {
+  transition: transform 0.3s ease;
+}
+
+.expandIndicator:hover {
+  background-color: var(--border-color);
+  color: var(--text-primary);
+}
+
+/* Panel Deslizante de Detalles (slideUpPanel) */
+.slideUpPanel {
+  position: absolute;
+  bottom: -100%;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: var(--bg-card);
+  padding: 20px;
+  transition: bottom 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  z-index: 5;
+}
+
+/* Encabezado del Panel Deslizante */
+.slideUpHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+  border-bottom: 2px solid var(--border-color);
+  padding-bottom: 6px;
+}
+
+.slideUpHeader h4 {
+  font-size: 0.85rem;
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-secondary);
+  font-weight: 800;
+}
+
+.closePanelButton {
+  background: none;
+  border: none;
+  font-size: 1.4rem;
+  color: var(--text-secondary);
+  cursor: pointer;
+  line-height: 1;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.closePanelButton:hover {
+  background-color: var(--bg-input);
+  color: var(--duo-red);
+}
+
+/* Mostrar panel al hover o click */
+.pieceCard:hover .slideUpPanel,
+.pieceCard.cardExpanded .slideUpPanel {
+  bottom: 0;
+}
+
 
 /* Estado de lista vacía */
 .emptyState {

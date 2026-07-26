@@ -8,7 +8,8 @@ import {
   FaCheckCircle, 
   FaInfoCircle, 
   FaSlidersH,
-  FaCar
+  FaCar,
+  FaChevronDown
 } from 'react-icons/fa';
 import { 
   GiStopSign,
@@ -99,6 +100,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
   setHighlightedPieceId
 }) => {
   const [editingPiece, setEditingPiece] = useState<Piece | null>(null);
+  const [expandedCardId, setExpandedCardId] = useState<string | null>(null);
 
   // Obtener vehículo seleccionado
   const selectedVehicle = useMemo(() => {
@@ -264,104 +266,139 @@ export const Dashboard: React.FC<DashboardProps> = ({
                   status === 'yellow' ? styles.progressYellow : 
                   styles.progressGreen;
 
+                const isExpanded = piece.id === expandedCardId || piece.id === highlightedPieceId;
+
                 return (
                   <article 
                     id={piece.id}
                     key={piece.id} 
-                    className={`${styles.pieceCard} ${status === 'red' ? styles.urgentPulse : ''} ${piece.id === highlightedPieceId ? styles.highlightedCard : ''}`}
+                    className={`${styles.pieceCard} ${status === 'red' ? styles.urgentPulse : ''} ${piece.id === highlightedPieceId ? styles.highlightedCard : ''} ${isExpanded ? styles.cardExpanded : ''}`}
                     style={{ position: 'relative' }}
                     onClick={() => {
                       if (piece.id === highlightedPieceId) {
                         setHighlightedPieceId(null);
                       }
+                      setExpandedCardId(prev => prev === piece.id ? null : piece.id);
                     }}
                   >
-                    <div className={styles.cardHeader}>
-                      <div className={styles.iconTitleGroup}>
-                        <div className={styles.categoryIconWrapper} aria-hidden="true">
-                          {piece.category === 'frenos' && <GiStopSign />}
-                          {piece.category === 'suspensión' && <GiSuspensionBridge />}
-                          {piece.category === 'motor' && <GiGears />}
-                          {piece.category === 'transmisión' && <GiGearStickPattern />}
-                          {piece.category === 'eléctrico' && <GiElectric />}
-                          {piece.category === 'neumáticos' && <GiCarWheel />}
-                          {piece.category === 'enfriamiento' && <GiSnowflake2 />}
-                          {piece.category === 'dirección' && <GiSteeringWheel />}
+                    {/* Front Panel (Always visible when not expanded/hovered) */}
+                    <div className={styles.cardFrontContent}>
+                      <div className={styles.cardHeader}>
+                        <div className={styles.iconTitleGroup}>
+                          <div className={styles.categoryIconWrapper} aria-hidden="true">
+                            {piece.category === 'frenos' && <GiStopSign />}
+                            {piece.category === 'suspensión' && <GiSuspensionBridge />}
+                            {piece.category === 'motor' && <GiGears />}
+                            {piece.category === 'transmisión' && <GiGearStickPattern />}
+                            {piece.category === 'eléctrico' && <GiElectric />}
+                            {piece.category === 'neumáticos' && <GiCarWheel />}
+                            {piece.category === 'enfriamiento' && <GiSnowflake2 />}
+                            {piece.category === 'dirección' && <GiSteeringWheel />}
+                          </div>
+                          <div className={styles.titleArea}>
+                            <h3>{piece.name}</h3>
+                            <span className={styles.categoryBadge}>{piece.category}</span>
+                          </div>
                         </div>
-                        <div className={styles.titleArea}>
-                          <h3>{piece.name}</h3>
-                          <span className={styles.categoryBadge}>{piece.category}</span>
-                        </div>
+
+                        {/* RF08: Semáforo Tricolor */}
+                        <span className={`${styles.urgencyBadge} ${urgencyClass}`}>
+                          {status === 'red' && <FaExclamationTriangle className="me-1" />}
+                          {status === 'green' && <FaCheckCircle className="me-1" />}
+                          {statusLabel}
+                        </span>
                       </div>
 
-                      {/* RF08: Semáforo Tricolor */}
-                      <span className={`${styles.urgencyBadge} ${urgencyClass}`}>
-                        {status === 'red' && <FaExclamationTriangle className="me-1" />}
-                        {status === 'green' && <FaCheckCircle className="me-1" />}
-                        {statusLabel}
-                      </span>
+                      <section className={styles.wearSection}>
+                        <div className={styles.wearLabelRow}>
+                          <span>Desgaste Estimado</span>
+                          <span className="fw-bold">{wearPercentage}%</span>
+                        </div>
+                        <div className={styles.progressContainer} aria-valuenow={wearPercentage} aria-valuemin={0} aria-valuemax={100}>
+                          <div 
+                             className={`${styles.progressBar} ${progressColorClass}`}
+                            style={{ width: `${wearPercentage}%` }}
+                          />
+                        </div>
+                      </section>
+
+                      {/* H8 - Visual indicator for expandable details */}
+                      <div className={styles.expandIndicator}>
+                        <span>Ver detalles y acciones</span>
+                        <FaChevronDown />
+                      </div>
                     </div>
 
-                    <section className={styles.wearSection}>
-                      <div className={styles.wearLabelRow}>
-                        <span>Desgaste Estimado</span>
-                        <span className="fw-bold">{wearPercentage}%</span>
+                    {/* Back Panel / Slide-up Drawer (Covering the front content on hover/click) */}
+                    <div className={styles.slideUpPanel}>
+                      <div className={styles.slideUpHeader}>
+                        <h4>Detalles de Pieza</h4>
+                        <button 
+                          className={styles.closePanelButton}
+                          title="Cerrar detalles"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setExpandedCardId(null);
+                          }}
+                        >
+                          &times;
+                        </button>
                       </div>
-                      <div className={styles.progressContainer} aria-valuenow={wearPercentage} aria-valuemin={0} aria-valuemax={100}>
-                        <div 
-                          className={`${styles.progressBar} ${progressColorClass}`}
-                          style={{ width: `${wearPercentage}%` }}
-                        />
-                      </div>
-                    </section>
 
-                    <section className={styles.detailsGrid}>
-                      <div className={styles.detailItem}>
-                        <span className={styles.detailLabel}>Último Cambio</span>
-                        <span className={styles.detailValue}>
-                          <FaRoad className="me-1 text-muted" /> {piece.lastChangeKm.toLocaleString()} km
-                        </span>
-                      </div>
-                      <div className={styles.detailItem}>
-                        <span className={styles.detailLabel}>Fecha Cambio</span>
-                        <span className={styles.detailValue}>
-                          <FaCalendarAlt className="me-1 text-muted" /> {new Date(piece.lastChangeDate).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' })}
-                        </span>
-                      </div>
-                      <div className={styles.detailItem}>
-                        <span className={styles.detailLabel}>Uso Transcurrido</span>
-                        <span className={styles.detailValue}>
-                          {kmDrivenSinceChange.toLocaleString()} km
-                        </span>
-                      </div>
-                      <div className={styles.detailItem}>
-                        <span className={styles.detailLabel}>Límite Fábrica</span>
-                        <span className={styles.detailValue} title={`Vida esperada: ${piece.lifeKm} km o ${piece.lifeMonths} meses`}>
-                          <FaInfoCircle className="me-1 text-info" /> {piece.lifeKm.toLocaleString()} km
-                        </span>
-                      </div>
-                    </section>
+                      <section className={styles.detailsGrid}>
+                        <div className={styles.detailItem}>
+                          <span className={styles.detailLabel}>Último Cambio</span>
+                          <span className={styles.detailValue}>
+                            <FaRoad className="me-1 text-muted" /> {piece.lastChangeKm.toLocaleString()} km
+                          </span>
+                        </div>
+                        <div className={styles.detailItem}>
+                          <span className={styles.detailLabel}>Fecha Cambio</span>
+                          <span className={styles.detailValue}>
+                            <FaCalendarAlt className="me-1 text-muted" /> {new Date(piece.lastChangeDate).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' })}
+                          </span>
+                        </div>
+                        <div className={styles.detailItem}>
+                          <span className={styles.detailLabel}>Uso Transcurrido</span>
+                          <span className={styles.detailValue}>
+                            {kmDrivenSinceChange.toLocaleString()} km
+                          </span>
+                        </div>
+                        <div className={styles.detailItem}>
+                          <span className={styles.detailLabel}>Límite Fábrica</span>
+                          <span className={styles.detailValue} title={`Vida esperada: ${piece.lifeKm} km o ${piece.lifeMonths} meses`}>
+                            <FaInfoCircle className="me-1 text-info" /> {piece.lifeKm.toLocaleString()} km
+                          </span>
+                        </div>
+                      </section>
 
-                    <div className={styles.cardActions}>
-                      {/* RF09: Registrar Mantenimiento */}
-                      <button 
-                        className="btn-duo-3d btn-duo-primary" 
-                        style={{ flex: 1 }}
-                        title={`Registrar mantenimiento para ${piece.name}`}
-                        onClick={() => onOpenMaintenanceModal(piece)}
-                      >
-                        <FaWrench className="me-1" />
-                        <span>Mantenimiento</span>
-                      </button>
-                      
-                      {/* RF07: Asignación de desgastes y tolerancias de fábrica */}
-                      <button 
-                        className="btn-duo-3d btn-duo-secondary"
-                        title="Configurar límites de fábrica"
-                        onClick={() => setEditingPiece(piece)}
-                      >
-                        <FaSlidersH />
-                      </button>
+                      <div className={styles.cardActions}>
+                        {/* RF09: Registrar Mantenimiento */}
+                        <button 
+                          className="btn-duo-3d btn-duo-primary" 
+                          style={{ flex: 1 }}
+                          title={`Registrar mantenimiento para ${piece.name}`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onOpenMaintenanceModal(piece);
+                          }}
+                        >
+                          <FaWrench className="me-1" />
+                          <span>Mantenimiento</span>
+                        </button>
+                        
+                        {/* RF07: Asignación de desgastes y tolerancias de fábrica */}
+                        <button 
+                          className="btn-duo-3d btn-duo-secondary"
+                          title="Configurar límites de fábrica"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setEditingPiece(piece);
+                          }}
+                        >
+                          <FaSlidersH />
+                        </button>
+                      </div>
                     </div>
                   </article>
                 );
