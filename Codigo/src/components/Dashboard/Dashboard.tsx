@@ -101,6 +101,35 @@ export const Dashboard: React.FC<DashboardProps> = ({
 }) => {
   const [editingPiece, setEditingPiece] = useState<Piece | null>(null);
   const [expandedCardId, setExpandedCardId] = useState<string | null>(null);
+  const [prevIndex, setPrevIndex] = useState(0);
+  const [direction, setDirection] = useState(1);
+
+  const activeVehicleIndex = useMemo(() => {
+    return vehicles.findIndex(v => v.id === activeVehicleId);
+  }, [vehicles, activeVehicleId]);
+
+  React.useEffect(() => {
+    if (activeVehicleIndex !== -1 && activeVehicleIndex !== prevIndex) {
+      setDirection(activeVehicleIndex > prevIndex ? 1 : -1);
+      setPrevIndex(activeVehicleIndex);
+    }
+  }, [activeVehicleIndex, prevIndex]);
+
+  const slideVariants = {
+    enter: (dir: number) => ({
+      x: dir > 0 ? 150 : -150,
+      opacity: 0
+    }),
+    center: {
+      x: 0,
+      opacity: 1
+    },
+    exit: (dir: number) => ({
+      x: dir < 0 ? 150 : -150,
+      opacity: 0
+    })
+  };
+
 
   // Obtener vehículo seleccionado
   const selectedVehicle = useMemo(() => {
@@ -197,25 +226,30 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
         {/* RF05: Selector de vehículo activo en barra superior */}
         <div className={styles.vehicleSelectorWrapper}>
-          <span className={styles.vehicleSelectLabel}>Vehículo Activo:</span>
-          <select 
-            id="vehicle-active-select"
-            className={styles.vehicleSelect} 
-            value={activeVehicleId}
-            onChange={(e) => setActiveVehicleId(e.target.value)}
-            aria-label="Seleccionar Vehículo Activo"
-          >
-            {vehicles.map(v => (
-              <option key={v.id} value={v.id}>
-                {v.name} ({v.plate})
-              </option>
-            ))}
-          </select>
+          <div className={styles.vehicleIconPill}>
+            <FaCar />
+          </div>
+          <div className={styles.vehicleSelectorMain}>
+            <span className={styles.vehicleSelectLabel}>Vehículo Activo</span>
+            <select 
+              id="vehicle-active-select"
+              className={styles.vehicleSelect} 
+              value={activeVehicleId}
+              onChange={(e) => setActiveVehicleId(e.target.value)}
+              aria-label="Seleccionar Vehículo Activo"
+            >
+              {vehicles.map(v => (
+                <option key={v.id} value={v.id}>
+                  {v.name} ({v.plate})
+                </option>
+              ))}
+            </select>
+          </div>
           <button 
-            className="btn-duo-3d btn-duo-secondary btn-sm ms-2"
+            className="btn-duo-3d btn-duo-primary ms-2"
             onClick={onOpenMileageModal}
             title="Actualizar Kilometraje del Vehículo Activo"
-            style={{ minHeight: '36px', padding: '4px 12px', fontSize: '0.8rem', borderRadius: '10px' }}
+            style={{ minHeight: '38px', padding: '4px 14px', fontSize: '0.85rem', borderRadius: '12px' }}
           >
             Actualizar Km
           </button>
@@ -244,14 +278,20 @@ export const Dashboard: React.FC<DashboardProps> = ({
       </nav>
 
       <main>
-        <AnimatePresence mode="wait">
+        <AnimatePresence mode="wait" initial={false}>
           {sortedAndFilteredPieces.length > 0 ? (
             <motion.div 
+              key={`${activeVehicleId}-${activeCategory}`}
+              custom={direction}
+              variants={slideVariants}
+              initial="enter"
+              animate="center"
+              exit="exit"
+              transition={{
+                x: { type: "spring", stiffness: 260, damping: 26 },
+                opacity: { duration: 0.2 }
+              }}
               className={styles.cardsGrid}
-              initial={{ opacity: 0, y: 15 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -15 }}
-              transition={{ duration: 0.2 }}
             >
               {sortedAndFilteredPieces.map(({ piece, wearInfo }) => {
                 const { wearPercentage, status, statusLabel, kmDrivenSinceChange } = wearInfo;
@@ -332,17 +372,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                     {/* Back Panel / Slide-up Drawer (Covering the front content on hover/click) */}
                     <div className={styles.slideUpPanel}>
                       <div className={styles.slideUpHeader}>
-                        <h4>Detalles de Pieza</h4>
-                        <button 
-                          className={styles.closePanelButton}
-                          title="Cerrar detalles"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setExpandedCardId(null);
-                          }}
-                        >
-                          &times;
-                        </button>
+                        <h4>{piece.name}</h4>
                       </div>
 
                       <section className={styles.detailsGrid}>

@@ -83,7 +83,7 @@ export const PieceEditModal: React.FC<PieceEditModalProps> = ({
 
         <form onSubmit={handleSubmit(onSubmit)} className={styles.modalForm}>
           <div className="row g-3 mb-3">
-            <div className="col-md-6 col-12">
+            <div className="col-12">
               <label className={styles.inputLabel}>Vida Útil de Fábrica (Km):</label>
               <div className={styles.inputWrapper}>
                 <FaRoad className={styles.inputIcon} />
@@ -96,7 +96,7 @@ export const PieceEditModal: React.FC<PieceEditModalProps> = ({
               {errors.lifeKm && <span className={styles.errorMessage}>{errors.lifeKm.message}</span>}
             </div>
 
-            <div className="col-md-6 col-12">
+            <div className="col-12">
               <label className={styles.inputLabel}>Vida Útil de Fábrica (Meses):</label>
               <div className={styles.inputWrapper}>
                 <FaCalendarAlt className={styles.inputIcon} />
@@ -111,7 +111,7 @@ export const PieceEditModal: React.FC<PieceEditModalProps> = ({
           </div>
 
           <div className="row g-3 mb-3">
-            <div className="col-md-6 col-12">
+            <div className="col-12">
               <label className={styles.inputLabel}>Km en Último Cambio:</label>
               <div className={styles.inputWrapper}>
                 <FaRoad className={styles.inputIcon} />
@@ -124,7 +124,7 @@ export const PieceEditModal: React.FC<PieceEditModalProps> = ({
               {errors.lastChangeKm && <span className={styles.errorMessage}>{errors.lastChangeKm.message}</span>}
             </div>
 
-            <div className="col-md-6 col-12">
+            <div className="col-12">
               <label className={styles.inputLabel}>Fecha de Último Cambio:</label>
               <div className={styles.inputWrapper}>
                 <FaCalendarAlt className={styles.inputIcon} />

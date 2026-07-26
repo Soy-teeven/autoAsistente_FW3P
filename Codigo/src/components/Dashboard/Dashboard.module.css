@@ -31,36 +31,64 @@
 .vehicleSelectorWrapper {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 16px;
   background-color: var(--bg-card);
-  padding: 8px 16px;
-  border-radius: 16px;
-  border: 2px solid var(--border-color);
-  box-shadow: 0 4px 0 var(--border-shadow);
+  padding: 10px 20px;
+  border-radius: 24px;
+  border: 3px solid var(--duo-blue); /* Distinct thick blue border */
+  box-shadow: 0 5px 0 var(--duo-blue-dark); /* 3D shadow */
+  transition: transform var(--transition-fast);
+}
+
+.vehicleIconPill {
+  width: 44px;
+  height: 44px;
+  background-color: #ddf4ff;
+  color: var(--duo-blue-dark);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.3rem;
+  border: 2px solid #b3e5fc;
+  flex-shrink: 0;
+}
+
+[data-theme="dark"] .vehicleIconPill {
+  background-color: rgba(28, 176, 246, 0.15);
+  color: #64b5f6;
+  border-color: rgba(28, 176, 246, 0.35);
+}
+
+.vehicleSelectorMain {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
 .vehicleSelectLabel {
   font-family: var(--font-heading);
-  font-size: 0.85rem;
-  font-weight: 700;
-  color: var(--duo-blue-dark);
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: var(--text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  line-height: 1;
 }
 
 .vehicleSelect {
   font-family: var(--font-body);
-  font-weight: 700;
-  font-size: 1rem;
+  font-weight: 800;
+  font-size: 1.05rem;
   color: var(--text-primary);
   border: none;
   background-color: transparent;
   cursor: pointer;
-  padding-right: 24px;
   outline: none;
+  padding: 0;
+  margin: 0;
 }
 
-/* Fix option tag contrast in various themes and browsers */
 .vehicleSelect option {
   background-color: var(--bg-card);
   color: var(--text-primary);
@@ -388,7 +416,6 @@
 /* Encabezado del Panel Deslizante */
 .slideUpHeader {
   display: flex;
-  justify-content: space-between;
   align-items: center;
   margin-bottom: 10px;
   border-bottom: 2px solid var(--border-color);
@@ -402,32 +429,17 @@
   letter-spacing: 0.5px;
   color: var(--text-secondary);
   font-weight: 800;
-}
-
-.closePanelButton {
-  background: none;
-  border: none;
-  font-size: 1.4rem;
-  color: var(--text-secondary);
-  cursor: pointer;
-  line-height: 1;
-  padding: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  transition: background-color 0.15s ease, color 0.15s ease;
-}
-
-.closePanelButton:hover {
-  background-color: var(--bg-input);
-  color: var(--duo-red);
+  width: 100%;
+  text-align: left;
 }
 
 /* Mostrar panel al hover o click */
-.pieceCard:hover .slideUpPanel,
+@media (hover: hover) {
+  .pieceCard:hover .slideUpPanel {
+    bottom: 0;
+  }
+}
+
 .pieceCard.cardExpanded .slideUpPanel {
   bottom: 0;
 }
