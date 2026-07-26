@@ -1,0 +1,70 @@
+# Walkthrough: Dashboard, Modal de Kilometraje y Centro de Notificaciones
+
+Hemos completado exitosamente la implementación e integración de los tres componentes clave del frontend en el espacio de trabajo, bajo la estética visual y UX interactiva de **Duolingo** y el cumplimiento de las Heurísticas de Jakob Nielsen.
+
+---
+
+## Estructura de Archivos del Proyecto
+
+Todos los archivos han sido estructurados en el espacio de trabajo bajo la carpeta `src`:
+
+```
+src/
+├── components/
+│   ├── Dashboard/
+│   │   ├── Dashboard.tsx (Refactorizado con Props)
+│   │   └── Dashboard.module.css (Estilos 3D + highlight)
+│   ├── MileageModal/
+│   │   ├── MileageModal.tsx [NUEVO] (REQ006 - Zod + Hook Form)
+│   │   └── MileageModal.module.css [NUEVO] (Estilos del pop-in)
+│   └── NotificationCenter/
+│       ├── NotificationCenter.tsx [NUEVO] (REQ012 - Campana + dropdown)
+│       └── NotificationCenter.module.css [NUEVO] (Estilos 3D + badges)
+├── styles/
+│   └── global.css (Estilos base de Duolingo y temas dinámicos)
+├── App.tsx (Controlador de estado global y navbar)
+├── main.tsx (Punto de entrada de React)
+└── vite-env.d.ts [NUEVO] (Tipados para CSS Modules)
+```
+
+---
+
+## Resumen de Módulos Implementados
+
+### 1. Dashboard Principal (Refactorizado)
+*   **Estado Elevado**: Ahora recibe los datos del vehículo activo por props desde `App.tsx`, facilitando la sincronización en tiempo real.
+*   **Enfoque de Alertas (REQ012)**: Soporta la propiedad `highlightedPieceId`. Al seleccionar una alerta de la campana, el dashboard filtra la categoría de esa pieza, hace scroll automático suave hasta su posición y hace que la tarjeta ejecute una micro-animación de rebote (bounce).
+*   **Acceso Rápido (REQ006)**: Contiene un botón 3D "Actualizar Km" integrado directamente junto al selector del vehículo activo para abrir el modal en solo 1 clic.
+
+### 2. Modal de Actualización de Kilometraje (REQ006)
+*   **Validación Estricta (H5 - Prevención de errores)**: Desarrollado con `React Hook Form` y `Zod`. Valida en tiempo real que el kilometraje ingresado sea un número entero positivo y sea estrictamente **mayor o igual** al kilometraje actual del coche.
+*   **Bloqueo Visual**: El botón de guardar se deshabilita si el campo es inválido.
+*   **Mensaje de error claro (H9)**: Muestra un mensaje amigable detallando el kilometraje mínimo permitido.
+*   **Recálculo Instantáneo**: Al guardar, se actualiza el kilometraje y el desgaste de todas las piezas se re-evalúa al instante en la UI sin parpadeos.
+
+### 3. Centro de Notificaciones (REQ012)
+*   **Campana con Badge Dinámico (H1)**: Muestra un indicador circular rojo con el número de piezas con desgaste crítico (semáforo amarillo ≥75% o rojo ≥90%) sin leer.
+*   **Dropdown interactivo**: Muestra las alertas ordenadas por nivel de urgencia.
+*   **Marcar como leídas (H3)**: Botón global "Marcar todas como leídas" y botones individuales `Check` para marcar de forma independiente.
+*   **Conmutador de Temas Visuales**: Incluye un conmutador de tema claro/oscuro que inyecta variables CSS al nodo raíz de inmediato.
+
+---
+
+## Heurísticas de Jakob Nielsen Cumplidas y Comentadas
+
+Las heurísticas clave demostradas en el código son:
+*   **H1: Visibilidad del estado**: Semáforos de desgaste en tarjetas, badge dinámico de notificaciones, y recálculo instantáneo (<16ms).
+*   **H2: Coincidencia con el mundo real**: Iconografía familiar para las categorías de mantenimiento (frenos $\rightarrow$ `GiStopSign`, motor $\rightarrow$ `GiGears`, etc.) y textos sencillos.
+*   **H3: Control y libertad del usuario**: Botones de cancelar en el modal, cerrar el dropdown de notificaciones haciendo clic fuera o marcando todos como leídos de forma masiva.
+*   **H5: Prevención de errores**: Validación de Zod que bloquea envíos erróneos en el odómetro.
+*   **H6: Reconocimiento antes que recuerdo**: Mostrar el kilometraje anterior e histórico en la tarjeta y en el modal para que el usuario no tenga que memorizarlo.
+*   **H7: Flexibilidad y eficiencia de uso**: Filtrado por pestañas e integración de accesos rápidos para actualizar odómetros y alertas.
+*   **H8: Diseño estético y minimalista**: Foco en la legibilidad, contraste WCAG AA, y micro-animaciones suaves no intrusivas.
+*   **H9: Reconocer y recuperarse de errores**: Alertas de Zod con explicaciones claras sobre los valores esperados.
+
+---
+
+## Verificación de Compilación
+
+*   El proyecto se compiló localmente mediante `npm run build` con **cero errores de compilación ni tipos**.
+*   El servidor de desarrollo en `http://localhost:3000` ha recargado los cambios con éxito.

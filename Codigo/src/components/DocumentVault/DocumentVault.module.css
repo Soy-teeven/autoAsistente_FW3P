@@ -1,0 +1,138 @@
+/* Estilos para la Bóveda de Documentos */
+
+.vaultContainer {
+  padding: 16px 0;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.vaultHeader {
+  text-align: center;
+  margin-bottom: 32px;
+}
+
+.iconWrapper {
+  width: 56px;
+  height: 56px;
+  border-radius: 18px;
+  background-color: #fff8db;
+  color: var(--duo-orange);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.75rem;
+  margin: 0 auto 12px auto;
+  border: 2px solid #ffe596;
+}
+
+.vaultHeader h2 {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 2px;
+}
+
+.subtitle {
+  font-size: 1rem;
+  color: var(--text-secondary);
+}
+
+.subtitle strong {
+  color: var(--text-primary);
+}
+
+/* Grid */
+.docsGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+
+@media (max-width: 768px) {
+  .docsGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Card */
+.docCard {
+  background-color: var(--bg-card);
+  border: 2px solid var(--border-color);
+  border-radius: 20px;
+  padding: 20px;
+  box-shadow: 0 4px 0 var(--border-shadow);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.cardHeader {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.docIcon {
+  font-size: 2rem;
+  color: var(--duo-blue);
+  flex-shrink: 0;
+}
+
+.titleGroup h3 {
+  font-size: 1.1rem;
+  margin: 0;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.statusBadge {
+  font-size: 0.8rem;
+  display: block;
+  margin-top: 2px;
+}
+
+/* Preview Box */
+.previewBox {
+  height: 220px;
+  background-color: var(--bg-input);
+  border: 2px dashed var(--border-color);
+  border-radius: 14px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 20px;
+  position: relative;
+}
+
+.previewImage {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  padding: 8px;
+}
+
+.previewPlaceholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 20px;
+  gap: 12px;
+}
+
+.uploadArrow {
+  font-size: 2.2rem;
+  color: var(--text-secondary);
+  opacity: 0.5;
+}
+
+/* Footer / Inputs */
+.cardFooter {
+  display: flex;
+}
+
+.hiddenInput {
+  display: none;
+}

@@ -1,0 +1,202 @@
+/* Estilos para el modal de Registro de Mantenimientos */
+
+.modalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.55);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1050;
+  padding: 16px;
+  backdrop-filter: blur(4px);
+}
+
+.modalContainer {
+  background-color: var(--bg-card);
+  border: 2px solid var(--border-color);
+  border-radius: 24px;
+  box-shadow: 0 8px 0 var(--border-shadow);
+  width: 100%;
+  max-width: 520px;
+  position: relative;
+  padding: 32px 24px;
+  max-height: 90vh;
+  overflow-y: auto;
+  transition: background-color var(--transition-normal);
+}
+
+/* Botón cerrar */
+.closeButton {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  border: none;
+  background: none;
+  font-size: 1.15rem;
+  color: var(--text-secondary);
+  cursor: pointer;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all var(--transition-fast);
+}
+
+.closeButton:hover {
+  background-color: var(--bg-input);
+  color: var(--text-primary);
+}
+
+/* Header */
+.modalHeader {
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.iconWrapper {
+  width: 56px;
+  height: 56px;
+  border-radius: 18px;
+  background-color: #e5f5d7;
+  color: var(--duo-green-dark);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.75rem;
+  margin: 0 auto 12px auto;
+  border: 2px solid #b8e986;
+}
+
+.modalHeader h2 {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 2px;
+}
+
+.subtitle {
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+}
+
+.subtitle strong {
+  color: var(--text-primary);
+}
+
+/* Formulario */
+.modalForm {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.formRow {
+  display: flex;
+  gap: 16px;
+}
+
+@media (max-width: 576px) {
+  .formRow {
+    flex-direction: column;
+    gap: 16px;
+  }
+}
+
+.formGroup {
+  display: flex;
+  flex-direction: column;
+}
+
+.inputLabel {
+  font-family: var(--font-heading);
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 6px;
+}
+
+.inputWrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.inputIcon {
+  position: absolute;
+  left: 14px;
+  color: var(--text-secondary);
+  pointer-events: none;
+}
+
+.textInput {
+  width: 100%;
+  padding: 12px 14px 12px 42px;
+  font-size: 0.95rem;
+  font-family: var(--font-body);
+  font-weight: 700;
+  border-radius: 14px;
+  border: 2px solid var(--border-color);
+  background-color: var(--bg-input);
+  color: var(--text-primary);
+  outline: none;
+  transition: all var(--transition-fast);
+}
+
+.textInput:focus {
+  border-color: var(--duo-blue);
+  background-color: var(--bg-card);
+}
+
+.textSelect {
+  width: 100%;
+  padding: 12px 14px;
+  font-size: 0.95rem;
+  font-family: var(--font-body);
+  font-weight: 700;
+  border-radius: 14px;
+  border: 2px solid var(--border-color);
+  background-color: var(--bg-input);
+  color: var(--text-primary);
+  outline: none;
+  cursor: pointer;
+}
+
+.inputError {
+  border-color: var(--duo-red) !important;
+  background-color: var(--bg-input-error) !important;
+  color: var(--text-input-error) !important;
+}
+
+.errorMessage {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--duo-red-dark);
+  margin-top: 6px;
+}
+
+.helpText {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  line-height: 1.4;
+  margin: 0;
+}
+
+/* Footer / Botonera */
+.modalFooter {
+  display: flex;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.modalFooter button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none !important;
+  box-shadow: 0 4px 0 var(--duo-green-dark) !important;
+}

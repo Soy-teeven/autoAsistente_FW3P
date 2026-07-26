@@ -1,0 +1,449 @@
+/* H8 - Diseño estético y minimalista: Contenedores limpios, espaciados amplios y paleta consistente */
+
+.dashboardContainer {
+  padding: 24px 0 60px 0;
+  max-width: 1140px;
+  margin: 0 auto;
+}
+
+/* Header del Dashboard */
+.headerSection {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 32px;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.titleContainer h1 {
+  font-size: 2.2rem;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+
+.titleContainer p {
+  color: var(--text-secondary);
+  font-size: 1.05rem;
+}
+
+/* Selector de Vehículo Activo en Dashboard (H7 - Flexibilidad y eficiencia de uso) */
+.vehicleSelectorWrapper {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background-color: var(--bg-card);
+  padding: 8px 16px;
+  border-radius: 16px;
+  border: 2px solid var(--border-color);
+  box-shadow: 0 4px 0 var(--border-shadow);
+}
+
+.vehicleSelectLabel {
+  font-family: var(--font-heading);
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--duo-blue-dark);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.vehicleSelect {
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: 1rem;
+  color: var(--text-primary);
+  border: none;
+  background-color: transparent;
+  cursor: pointer;
+  padding-right: 24px;
+  outline: none;
+}
+
+/* Tabs/Filtros por Categoría (H7 - Flexibilidad y eficiencia de uso) */
+.tabsContainer {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  padding-bottom: 12px;
+  margin-bottom: 32px;
+  scrollbar-width: none; /* Firefox */
+}
+
+.tabsContainer::-webkit-scrollbar {
+  display: none; /* Safari y Chrome */
+}
+
+.tabButton {
+  font-family: var(--font-heading);
+  font-size: 0.95rem;
+  font-weight: 700;
+  padding: 10px 18px;
+  border-radius: 12px;
+  border: 2px solid var(--border-color);
+  background-color: var(--bg-card);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 3px 0 var(--border-shadow);
+  /* Touch target minimo de 44x44px */
+  min-height: 44px;
+}
+
+.tabButton:hover {
+  background-color: var(--bg-input);
+  color: var(--text-primary);
+}
+
+.tabButtonActive {
+  background-color: #ddf4ff;
+  border-color: var(--duo-blue);
+  color: var(--duo-blue-dark);
+  box-shadow: 0 3px 0 var(--duo-blue-dark);
+}
+
+[data-theme="dark"] .tabButtonActive {
+  background-color: rgba(28, 176, 246, 0.15) !important;
+  color: #64b5f6 !important;
+  border-color: var(--duo-blue) !important;
+  box-shadow: 0 3px 0 var(--duo-blue-dark) !important;
+}
+
+.tabButtonActive:hover {
+  background-color: #ddf4ff;
+  color: var(--duo-blue-dark);
+}
+
+/* Grid de Tarjetas */
+.cardsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 24px;
+}
+
+/* Tarjeta de Pieza (H4 - Consistencia y H8 - Diseño estético y minimalista) */
+.pieceCard {
+  background-color: var(--bg-card);
+  border: 2px solid var(--border-color);
+  border-radius: 20px;
+  padding: 20px;
+  box-shadow: 0 4px 0 var(--border-shadow);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  position: relative;
+  overflow: hidden;
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.pieceCard:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 0 var(--border-shadow);
+}
+
+/* Encabezado de la Tarjeta */
+.cardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 16px;
+}
+
+.iconTitleGroup {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.categoryIconWrapper {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.4rem;
+  /* Colores dinámicos por categoría */
+  background-color: var(--bg-input);
+  border: 2px solid var(--border-color);
+  color: var(--text-primary);
+}
+
+.titleArea h3 {
+  font-size: 1.15rem;
+  margin: 0;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.categoryBadge {
+  font-size: 0.7rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  letter-spacing: 0.5px;
+}
+
+/* Semáforo de Desgaste (H1 - Visibilidad del Estado del Sistema) */
+.urgencyBadge {
+  font-family: var(--font-heading);
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 6px 12px;
+  border-radius: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.urgencyGreen {
+  background-color: #e5f5d7;
+  color: var(--duo-green-dark);
+  border: 2px solid #b8e986;
+}
+
+[data-theme="dark"] .urgencyGreen {
+  background-color: rgba(88, 204, 2, 0.15) !important;
+  color: #76ff03 !important;
+  border-color: rgba(88, 204, 2, 0.35) !important;
+}
+
+.urgencyYellow {
+  background-color: #fff8db;
+  color: var(--duo-orange-dark);
+  border: 2px solid #ffe596;
+}
+
+[data-theme="dark"] .urgencyYellow {
+  background-color: rgba(255, 150, 0, 0.15) !important;
+  color: #ffb74d !important;
+  border-color: rgba(255, 150, 0, 0.35) !important;
+}
+
+.urgencyRed {
+  background-color: #ffdfe0;
+  color: var(--duo-red-dark);
+  border: 2px solid #ffb3b5;
+}
+
+[data-theme="dark"] .urgencyRed {
+  background-color: rgba(255, 75, 75, 0.15) !important;
+  color: #ff8a80 !important;
+  border-color: rgba(255, 75, 75, 0.35) !important;
+}
+
+/* Sección de Desgaste / Progreso */
+.wearSection {
+  margin-bottom: 20px;
+}
+
+.wearLabelRow {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 6px;
+}
+
+.progressContainer {
+  height: 16px;
+  background-color: var(--bg-input);
+  border-radius: 8px;
+  overflow: hidden;
+  border: 2px solid var(--border-color);
+  position: relative;
+}
+
+.progressBar {
+  height: 100%;
+  border-radius: 6px;
+  transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.progressGreen {
+  background-color: var(--duo-green);
+  border-right: 3px solid var(--duo-green-dark);
+}
+
+.progressYellow {
+  background-color: var(--duo-yellow);
+  border-right: 3px solid var(--duo-yellow-dark);
+}
+
+.progressRed {
+  background-color: var(--duo-red);
+  border-right: 3px solid var(--duo-red-dark);
+}
+
+/* Detalles de la Pieza (H6 - Reconocimiento antes que recuerdo) */
+.detailsGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  background-color: var(--bg-input);
+  padding: 12px;
+  border-radius: 12px;
+  margin-bottom: 20px;
+  border: 1px solid var(--border-color);
+}
+
+.detailItem {
+  display: flex;
+  flex-direction: column;
+}
+
+.detailLabel {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  margin-bottom: 2px;
+}
+
+.detailValue {
+  font-size: 0.85rem;
+  font-weight: 800;
+  color: var(--text-primary);
+}
+
+/* Acciones de la Tarjeta */
+.cardActions {
+  display: flex;
+  gap: 12px;
+}
+
+.actionButton {
+  flex: 1;
+}
+
+/* Estado de lista vacía */
+.emptyState {
+  text-align: center;
+  padding: 60px 20px;
+  background-color: var(--bg-card);
+  border: 2px dashed var(--border-color);
+  border-radius: 20px;
+  margin-top: 20px;
+}
+
+.emptyStateIcon {
+  font-size: 3rem;
+  color: var(--text-secondary);
+  margin-bottom: 16px;
+}
+
+.emptyState h4 {
+  font-size: 1.4rem;
+  margin-bottom: 8px;
+}
+
+.emptyState p {
+  color: var(--text-secondary);
+  margin-bottom: 24px;
+}
+
+/* Animaciones del semáforo */
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(255, 75, 75, 0.4);
+  }
+  70% {
+    box-shadow: 0 0 0 8px rgba(255, 75, 75, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(255, 75, 75, 0);
+  }
+}
+
+.urgentPulse {
+  animation: pulse 2s infinite;
+}
+
+.highlightedCard {
+  border-color: var(--duo-blue) !important;
+  box-shadow: 0 0 0 4px rgba(28, 176, 246, 0.4), 0 4px 0 var(--duo-blue-dark) !important;
+  animation: cardBounce 0.6s ease-in-out;
+}
+
+@keyframes cardBounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+/* Responsividad para móviles */
+@media (max-width: 767px) {
+  .dashboardContainer {
+    padding: 12px 4px 80px 4px !important;
+  }
+
+  .headerSection {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 12px !important;
+    margin-bottom: 20px !important;
+  }
+
+  .titleContainer {
+    text-align: left !important;
+  }
+
+  .titleContainer h1 {
+    font-size: 1.5rem !important;
+    line-height: 1.2 !important;
+  }
+
+  .titleContainer p {
+    font-size: 0.85rem !important;
+    margin-bottom: 0 !important;
+  }
+
+  .vehicleSelectorWrapper {
+    width: 100% !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    padding: 14px !important;
+    gap: 8px !important;
+  }
+
+  .vehicleSelectLabel {
+    font-size: 0.8rem !important;
+  }
+
+  .vehicleSelect {
+    font-size: 0.95rem !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 8px 12px !important;
+    border: 2px solid var(--border-color) !important;
+    border-radius: 10px !important;
+    background-color: var(--bg-input) !important;
+    color: var(--text-primary) !important;
+    outline: none !important;
+    cursor: pointer !important;
+  }
+
+  .tabsContainer {
+    margin-bottom: 20px !important;
+    padding-bottom: 8px !important;
+  }
+
+  .tabButton {
+    padding: 8px 12px !important;
+    font-size: 0.85rem !important;
+    min-height: 38px !important;
+  }
+}
+

@@ -1,0 +1,235 @@
+/* Importar Google Fonts para estética técnica, profesional y sobria */
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap');
+
+:root {
+  /* Paleta Elegante y Sobria con micro-interacciones 3D táctiles */
+  --duo-green: #10b981;
+  --duo-green-dark: #059669;
+  --duo-blue: #2563eb;
+  --duo-blue-dark: #1d4ed8;
+  --duo-orange: #f59e0b;
+  --duo-orange-dark: #d97706;
+  --duo-red: #ef4444;
+  --duo-red-dark: #dc2626;
+  --duo-yellow: #eab308;
+  --duo-yellow-dark: #ca8a04;
+  
+  /* Textos y Fondos - Tema Claro */
+  --bg-app: #f8fafc;
+  --bg-card: #ffffff;
+  --bg-input: #f1f5f9;
+  --text-primary: #0f172a;
+  --text-secondary: #64748b;
+  --border-color: #e2e8f0;
+  --border-shadow: #cbd5e1;
+  --bg-input-error: #fff8f8;
+  --text-input-error: #0f172a;
+  
+  /* Fuentes Profesionales */
+  --font-heading: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-body: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  
+  /* Transiciones */
+  --transition-fast: 0.12s ease;
+  --transition-normal: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+[data-theme="dark"] {
+  --bg-app: #0f172a;
+  --bg-card: #1e293b;
+  --bg-input: #0f172a;
+  --text-primary: #f8fafc;
+  --text-secondary: #94a3b8;
+  --border-color: #334155;
+  --border-shadow: #1e293b;
+  --bg-input-error: #451a1c;
+  --text-input-error: #f8fafc;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-body);
+  background-color: var(--bg-app);
+  color: var(--text-primary);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  transition: background-color var(--transition-normal), color var(--transition-normal);
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: -0.02em;
+}
+
+/* Botones 3D Estilo Sobrio y Profesional */
+.btn-duo-3d {
+  font-family: var(--font-heading);
+  font-size: 0.875rem;
+  font-weight: 600;
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  position: relative;
+  transition: all var(--transition-fast);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  user-select: none;
+  min-height: 40px;
+}
+
+.btn-duo-primary {
+  background-color: var(--duo-blue);
+  color: #ffffff;
+  box-shadow: 0 3px 0 var(--duo-blue-dark);
+}
+
+.btn-duo-primary:hover {
+  background-color: #3b82f6;
+}
+
+.btn-duo-primary:active {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 var(--duo-blue-dark);
+}
+
+.btn-duo-secondary {
+  background-color: var(--bg-card);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+  box-shadow: 0 3px 0 var(--border-shadow);
+}
+
+.btn-duo-secondary:hover {
+  background-color: var(--bg-input);
+}
+
+.btn-duo-secondary:active {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 var(--border-shadow);
+}
+
+.btn-duo-danger {
+  background-color: var(--duo-red);
+  color: #ffffff;
+  box-shadow: 0 3px 0 var(--duo-red-dark);
+}
+
+.btn-duo-danger:hover {
+  background-color: #f87171;
+}
+
+.btn-duo-danger:active {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 var(--duo-red-dark);
+}
+
+/* Adaptación de tarjetas */
+.card-duo {
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.03);
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible {
+  outline: 2px solid var(--duo-blue);
+  outline-offset: 2px;
+}
+
+.cursor-pointer {
+  cursor: pointer;
+}
+
+/* --- Responsividad General e Interfaz Móvil Sobria --- */
+@media (max-width: 767px) {
+  /* Forzar fila principal a comportarse como columna */
+  .app-container-row {
+    flex-direction: column !important;
+    min-height: auto !important;
+  }
+  
+  /* Convertir Sidebar en Barra de Navegación Inferior Fija (Estilo Duolingo Sobrio) */
+  .sidebar-nav {
+    position: fixed !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    width: 100% !important;
+    height: 60px !important;
+    flex-direction: row !important;
+    justify-content: space-around !important;
+    align-items: center !important;
+    padding: 0 10px !important;
+    background-color: var(--bg-card) !important;
+    border-top: 1px solid var(--border-color) !important;
+    border-right: none !important;
+    z-index: 1000 !important;
+    margin-top: 0 !important;
+    gap: 0 !important;
+  }
+  
+  /* Ocultar elementos innecesarios en la barra de navegación móvil */
+  .sidebar-nav > div:first-child, /* Hamburguesa */
+  .sidebar-nav > div.mt-auto {   /* Info de Versión */
+    display: none !important;
+  }
+  
+  /* Rediseñar botones en el menú inferior */
+  .sidebar-nav button {
+    flex: 1 !important;
+    max-width: 70px !important;
+    min-height: 44px !important;
+    padding: 0 !important;
+    justify-content: center !important;
+    box-shadow: none !important;
+    border: none !important;
+    background: transparent !important;
+    color: var(--text-secondary) !important;
+  }
+  
+  /* Ocultar textos para mostrar únicamente iconos limpios */
+  .sidebar-nav button span {
+    display: none !important;
+  }
+  
+  .sidebar-nav button svg {
+    font-size: 1.5rem !important;
+    margin: 0 !important;
+  }
+  
+  /* Tema de color activo para botones seleccionados */
+  .sidebar-nav button.btn-duo-primary {
+    color: var(--duo-blue) !important;
+  }
+
+  .sidebar-nav button.btn-duo-danger {
+    color: var(--duo-red) !important;
+  }
+  
+  /* Evitar superposición del contenido con el menú inferior y el header */
+  .main-content {
+    padding: 16px 12px 80px 12px !important;
+  }
+
+  /* Ajustar grid de tarjetas en móviles pequeños */
+  div[class*="cardsGrid"] {
+    grid-template-columns: 1fr !important;
+    gap: 16px !important;
+  }
+}
+

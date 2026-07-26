@@ -1,0 +1,234 @@
+:root {
+  --duo-green: #58cc02;
+  --duo-green-dark: #46a302;
+  --duo-blue: #1cb0f6;
+  --duo-blue-dark: #1899d6;
+  --duo-text-dark: #3c3c3c;
+  --duo-gray-bg: #f7f7f7;
+  --duo-border-gray: #e5e5e5;
+  
+  --font-heading: 'Fredoka', 'Nunito', sans-serif;
+  --font-body: 'Nunito', sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-body);
+  background-color: var(--duo-gray-bg);
+  color: var(--duo-text-dark);
+  line-height: 1.5;
+  padding-bottom: 50px;
+}
+
+.container {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+/* Header / Hero */
+.hero {
+  background-color: var(--duo-green);
+  color: white;
+  padding: 60px 0;
+  margin-bottom: 40px;
+  border-bottom: 4px solid var(--duo-green-dark);
+}
+
+.brand-tag {
+  font-size: 0.85rem;
+  font-weight: 800;
+  letter-spacing: 2px;
+  opacity: 0.9;
+  text-transform: uppercase;
+}
+
+.feather-title {
+  font-family: var(--font-heading);
+  font-size: 4rem;
+  font-weight: 700;
+  line-height: 1;
+  margin: 10px 0;
+  letter-spacing: -1px;
+}
+
+.subtitle {
+  font-size: 1.25rem;
+  font-weight: 600;
+  opacity: 0.95;
+}
+
+/* Card Section */
+.card-section {
+  background: white;
+  border-radius: 16px;
+  padding: 30px;
+  margin-bottom: 30px;
+  border: 2px solid var(--duo-border-gray);
+  box-shadow: 0 4px 0 var(--duo-border-gray);
+}
+
+.section-title {
+  font-family: var(--font-heading);
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--duo-text-dark);
+  margin-bottom: 20px;
+}
+
+/* Grid & Specimen */
+.grid-2col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 25px;
+}
+
+@media (max-width: 768px) {
+  .grid-2col {
+    grid-template-columns: 1fr;
+  }
+}
+
+.font-box {
+  background: #fafafa;
+  border: 2px solid var(--duo-border-gray);
+  border-radius: 12px;
+  padding: 20px;
+}
+
+.font-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.font-header h3 {
+  font-size: 1.1rem;
+  font-weight: 800;
+}
+
+.badge {
+  font-size: 0.75rem;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.display-badge {
+  background-color: #e5f5d7;
+  color: var(--duo-green-dark);
+}
+
+.body-badge {
+  background-color: #ddf4ff;
+  color: var(--duo-blue-dark);
+}
+
+.font-specimen {
+  font-size: 1.1rem;
+  font-weight: 700;
+  line-height: 1.6;
+  color: var(--duo-green);
+  margin-bottom: 15px;
+  word-break: break-all;
+}
+
+.feather-font {
+  font-family: var(--font-heading);
+}
+
+.nunito-font {
+  font-family: var(--font-body);
+}
+
+.font-desc {
+  font-size: 0.95rem;
+  color: #777;
+}
+
+/* Examples */
+.example-box {
+  background: #fafafa;
+  border-radius: 12px;
+  padding: 40px;
+  border: 2px dashed var(--duo-border-gray);
+}
+
+.headline-duo {
+  font-family: var(--font-heading);
+  font-size: 5rem;
+  font-weight: 700;
+  color: var(--duo-green);
+  line-height: 1;
+}
+
+.sub-duo {
+  font-family: var(--font-heading);
+  font-size: 2.2rem;
+  font-weight: 700;
+  color: var(--duo-green);
+  margin-bottom: 20px;
+}
+
+.list-duo {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.list-duo span {
+  font-family: var(--font-heading);
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--duo-green);
+}
+
+/* Buttons 3D Style */
+.button-group {
+  display: flex;
+  gap: 15px;
+  flex-wrap: wrap;
+}
+
+.btn-duo {
+  font-family: var(--font-heading);
+  font-size: 1.1rem;
+  font-weight: 700;
+  padding: 14px 28px;
+  border-radius: 16px;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  transition: all 0.1s ease;
+}
+
+.btn-primary {
+  background-color: var(--duo-green);
+  color: white;
+  border: none;
+  border-bottom: 4px solid var(--duo-green-dark);
+}
+
+.btn-primary:active {
+  transform: translateY(2px);
+  border-bottom-width: 2px;
+}
+
+.btn-secondary {
+  background-color: white;
+  color: var(--duo-blue);
+  border: 2px solid var(--duo-border-gray);
+  border-bottom: 4px solid var(--duo-border-gray);
+}
+
+.btn-secondary:active {
+  transform: translateY(2px);
+  border-bottom-width: 2px;
+}

@@ -1,0 +1,227 @@
+/* Estilos para el Centro de Notificaciones (Campana + Dropdown) */
+
+.notificationWrapper {
+  position: relative;
+  display: inline-block;
+}
+
+/* Botón Campana */
+.bellButton {
+  background-color: var(--duo-blue);
+  color: #ffffff;
+  border: 2px solid var(--duo-blue-dark);
+  border-bottom-width: 4px;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  cursor: pointer;
+  position: relative;
+  transition: all var(--transition-fast);
+  outline: none;
+}
+
+.bellButton:hover {
+  filter: brightness(1.05);
+}
+
+.bellButton:active,
+.bellActive {
+  transform: translateY(2px);
+  border-bottom-width: 2px;
+}
+
+/* Badge de conteo */
+.badge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  background-color: var(--duo-red);
+  color: #ffffff;
+  font-family: var(--font-heading);
+  font-size: 0.75rem;
+  font-weight: 800;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #ffffff;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
+}
+
+/* Panel Desplegable */
+.dropdownMenu {
+  position: absolute;
+  top: 54px;
+  right: 0;
+  width: 320px;
+  background-color: var(--bg-card);
+  border: 2px solid var(--border-color);
+  border-radius: 16px;
+  box-shadow: 0 6px 0 var(--border-shadow);
+  z-index: 1000;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition: background-color var(--transition-normal);
+}
+
+.dropdownHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 16px;
+  border-bottom: 2px solid var(--border-color);
+  background-color: var(--bg-card);
+}
+
+.dropdownHeader h3 {
+  font-size: 1.1rem;
+  margin: 0;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.markAllButton {
+  font-family: var(--font-heading);
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--duo-blue);
+  background: none;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: all var(--transition-fast);
+}
+
+.markAllButton:hover {
+  background-color: var(--bg-input);
+}
+
+/* Listado de Items */
+.notificationsList {
+  max-height: 320px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+.notificationsList::-webkit-scrollbar {
+  width: 6px;
+}
+
+.notificationsList::-webkit-scrollbar-thumb {
+  background-color: var(--border-color);
+  border-radius: 3px;
+}
+
+.notificationItem {
+  display: flex;
+  align-items: center;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border-color);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  gap: 12px;
+  position: relative;
+  outline: none;
+}
+
+.notificationItem:hover {
+  background-color: var(--bg-input);
+}
+
+/* Estilos de leído / no leído */
+.itemUnread {
+  background-color: #f0f9ff;
+}
+
+[data-theme="dark"] .itemUnread {
+  background-color: #172730;
+}
+
+.itemRead {
+  background-color: transparent;
+}
+
+/* Indicadores de Semáforo */
+.statusIndicator {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.indicatorRed {
+  background-color: var(--duo-red);
+  box-shadow: 0 0 0 3px #ffdfe0;
+}
+
+.indicatorYellow {
+  background-color: var(--duo-yellow);
+  box-shadow: 0 0 0 3px #fff8db;
+}
+
+/* Contenido del item */
+.itemContent {
+  flex-grow: 1;
+  min-width: 0; /* Para evitar desbordamientos de texto */
+}
+
+.itemTitle {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.itemMeta {
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  margin-top: 2px;
+  display: flex;
+  align-items: center;
+}
+
+/* Botón individual de check */
+.checkButton {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+  transition: all var(--transition-fast);
+}
+
+.checkButton:hover {
+  background-color: var(--border-color);
+  color: var(--duo-green-dark);
+}
+
+/* Estado Vacío */
+.emptyState {
+  text-align: center;
+  padding: 32px 16px;
+  color: var(--text-secondary);
+}
+
+.emptyIcon {
+  font-size: 2.2rem;
+  color: var(--border-color);
+  margin-bottom: 8px;
+  opacity: 0.7;
+}
