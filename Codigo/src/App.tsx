@@ -46,7 +46,7 @@ function App() {
           return v;
         });
       } catch (e) {
-        return MOCK_VEHICLES;
+        
       }
     }
     return MOCK_VEHICLES;
