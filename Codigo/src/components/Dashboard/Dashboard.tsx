@@ -150,30 +150,30 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
   // RF08 & RNF02: Motor de Cálculo de desgaste dinámico (Protegido contra NaN / división por cero)
   const calculatePieceWear = (piece: Piece, currentKm: number) => {
-    const safeCurrentKm = Number.isFinite(currentKm) ? currentKm : 0;
-    const safeLastChangeKm = Number.isFinite(piece.lastChangeKm) ? piece.lastChangeKm : 0;
+    const safeCurrentKm = Number.isFinite(currentKm) && currentKm >= 0 ? currentKm : 0;
+    const safeLastChangeKm = Number.isFinite(piece.lastChangeKm) && piece.lastChangeKm >= 0 ? piece.lastChangeKm : 0;
     const safeLifeKm = (Number.isFinite(piece.lifeKm) && piece.lifeKm > 0) ? piece.lifeKm : 10000;
     const safeLifeMonths = (Number.isFinite(piece.lifeMonths) && piece.lifeMonths > 0) ? piece.lifeMonths : 12;
 
     const kmDrivenSinceChange = Math.max(0, safeCurrentKm - safeLastChangeKm);
-    const wearKmRatio = kmDrivenSinceChange / safeLifeKm;
+    const wearKmRatio = safeLifeKm > 0 ? kmDrivenSinceChange / safeLifeKm : 0;
 
     let monthsElapsed = 0;
     try {
       const lastChangeDateObj = new Date(piece.lastChangeDate);
-      if (!isNaN(lastChangeDateObj.getTime())) {
+      if (!Number.isNaN(lastChangeDateObj.getTime())) {
         const currentDateObj = new Date();
-        monthsElapsed = (currentDateObj.getFullYear() - lastChangeDateObj.getFullYear()) * 12 
+        monthsElapsed = (currentDateObj.getFullYear() - lastChangeDateObj.getFullYear()) * 12
           + (currentDateObj.getMonth() - lastChangeDateObj.getMonth());
         if (monthsElapsed < 0) monthsElapsed = 0;
       }
-    } catch (e) {
+    } catch {
       monthsElapsed = 0;
     }
 
-    const wearTimeRatio = monthsElapsed / safeLifeMonths;
+    const wearTimeRatio = safeLifeMonths > 0 ? monthsElapsed / safeLifeMonths : 0;
     const wearPercentage = Math.round(Math.max(wearKmRatio, wearTimeRatio) * 100);
-    const boundedWear = Math.max(0, Math.min(100, isNaN(wearPercentage) ? 0 : wearPercentage));
+    const boundedWear = Math.max(0, Math.min(100, Number.isNaN(wearPercentage) ? 0 : wearPercentage));
 
     let status: 'green' | 'yellow' | 'red' = 'green';
     let statusLabel = 'Óptimo';
@@ -196,15 +196,18 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
   // RF08: Filtrado Y Ordenamiento por urgencia de desgaste (rojo -> amarillo -> verde)
   const sortedAndFilteredPieces = useMemo(() => {
-    const piecesToFilter = activeCategory === 'todas' 
-      ? selectedVehicle.pieces 
-      : selectedVehicle.pieces.filter(p => p.category === activeCategory);
+    const safeVehicle = selectedVehicle && typeof selectedVehicle === 'object' ? selectedVehicle : MOCK_VEHICLES[0];
+    const piecesToFilter = activeCategory === 'todas'
+      ? (Array.isArray(safeVehicle.pieces) ? safeVehicle.pieces : [])
+      : (Array.isArray(safeVehicle.pieces) ? safeVehicle.pieces.filter(p => p.category === activeCategory) : []);
 
-    // Mapear con su desgaste calculado y ordenar descendente por wearPercentage
-    return piecesToFilter.map(piece => {
-      const wearInfo = calculatePieceWear(piece, selectedVehicle.currentKm);
-      return { piece, wearInfo };
-    }).sort((a, b) => b.wearInfo.wearPercentage - a.wearInfo.wearPercentage);
+    return piecesToFilter
+      .filter((piece): piece is Piece => Boolean(piece) && typeof piece === 'object')
+      .map(piece => {
+        const wearInfo = calculatePieceWear(piece, safeVehicle.currentKm);
+        return { piece, wearInfo };
+      })
+      .sort((a, b) => b.wearInfo.wearPercentage - a.wearInfo.wearPercentage);
   }, [selectedVehicle, activeCategory]);
 
   return (
@@ -259,7 +262,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
       {/* Detalles técnicos del vehículo activo */}
       <div className="alert alert-info py-2 px-3 mb-4 d-flex justify-content-between align-items-center flex-wrap gap-2" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }}>
         <span><FaCar className="me-2 text-primary" /> <strong>{selectedVehicle.brand || 'Toyota'} {selectedVehicle.model || 'Corolla'} ({selectedVehicle.year || 2020})</strong> | Placa: <code>{selectedVehicle.plate}</code> | VIN: <code>{selectedVehicle.vin || '1HGCR2F83HA123456'}</code></span>
-        <span>Odómetro: <strong>{selectedVehicle.currentKm.toLocaleString()} km</strong> (Inicial: {selectedVehicle.initialKm || 0} km)</span>
+        <span>Odómetro: <strong>{Number.isFinite(selectedVehicle.currentKm) ? selectedVehicle.currentKm.toLocaleString() : 0} km</strong> (Inicial: {Number.isFinite(selectedVehicle.initialKm) ? selectedVehicle.initialKm : 0} km)</span>
       </div>
 
       <nav className={styles.tabsContainer} aria-label="Categorías de Piezas">

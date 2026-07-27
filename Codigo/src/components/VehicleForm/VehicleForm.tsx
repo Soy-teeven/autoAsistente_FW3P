@@ -8,7 +8,9 @@ import { Vehicle, Piece } from '../../types';
 import styles from './VehicleForm.module.css';
 
 const createVehicleSchema = (existingVehicles: Vehicle[]) => z.object({
-  name: z.string().trim().min(2, { message: "El apodo del auto debe tener al menos 2 caracteres" }),
+  name: z.string().trim().min(2, { message: "El apodo del auto debe tener al menos 2 caracteres" }).refine((value) => value.split(/\s+/).filter(Boolean).length >= 1, {
+    message: "Ingresa un nombre válido"
+  }),
   brand: z.string().trim().min(2, { message: "La marca debe tener al menos 2 caracteres" }),
   model: z.string().trim().min(1, { message: "El modelo es obligatorio" }),
   year: z.coerce.number({ invalid_type_error: "El año debe ser número" })
@@ -31,9 +33,11 @@ const createVehicleSchema = (existingVehicles: Vehicle[]) => z.object({
       message: "Este VIN ya está registrado en otro vehículo"
     }),
   initialKm: z.coerce.number({ invalid_type_error: "Debe ser un número" })
-    .nonnegative({ message: "El kilometraje inicial no puede ser negativo" }),
+    .nonnegative({ message: "El kilometraje inicial no puede ser negativo" })
+    .max(1000000, { message: "El kilometraje inicial parece demasiado alto" }),
   currentKm: z.coerce.number({ invalid_type_error: "Debe ser un número" })
     .nonnegative({ message: "El kilometraje actual no puede ser negativo" })
+    .max(1000000, { message: "El kilometraje actual parece demasiado alto" })
 }).refine(data => data.currentKm >= data.initialKm, {
   message: "El kilometraje actual no puede ser menor al kilometraje inicial",
   path: ["currentKm"]

@@ -21,14 +21,18 @@ const createMaintenanceSchema = (currentVehicleKm: number) => z.object({
   })
   .int({ message: "Debe ser un número entero" })
   .positive({ message: "El kilometraje debe ser mayor a cero" })
+  .max(1000000, { message: "El kilometraje parece demasiado alto" })
   .refine((value) => value <= currentVehicleKm, {
     message: `El kilometraje no puede superar el odómetro actual (${currentVehicleKm} km)`
   }),
   cost: z.coerce.number({
     invalid_type_error: "Debe ser un número"
   })
-  .positive({ message: "El costo debe ser mayor a cero" }),
-  provider: z.string().trim().min(3, { message: "Especifica el taller o proveedor (mínimo 3 letras)" })
+  .positive({ message: "El costo debe ser mayor a cero" })
+  .max(1000000, { message: "El costo parece demasiado alto" }),
+  provider: z.string().trim().min(3, { message: "Especifica el taller o proveedor (mínimo 3 letras)" }).refine((value) => value.split(/\s+/).filter(Boolean).length >= 1, {
+    message: "Ingresa un nombre de taller o proveedor válido"
+  })
 });
 
 type MaintenanceFormValues = z.infer<ReturnType<typeof createMaintenanceSchema>>;
