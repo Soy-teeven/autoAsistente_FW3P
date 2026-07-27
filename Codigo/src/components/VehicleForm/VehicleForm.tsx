@@ -7,44 +7,62 @@ import { Vehicle, Piece } from '../../types';
 
 import styles from './VehicleForm.module.css';
 
-// Esquema de Validación Zod (RF04 & RNF04)
-const vehicleSchema = z.object({
-  name: z.string().min(2, { message: "El apodo del auto debe tener al menos 2 caracteres" }),
-  brand: z.string()
+const createVehicleSchema = (existingVehicles: Vehicle[]) => z.object({
+  name: z.string().trim().min(2, { message: "El apodo del auto debe tener al menos 2 caracteres" }).refine((value) => value.split(/\s+/).filter(Boolean).length >= 1, {
+    message: "Ingresa un nombre válido"
+  }),
+  brand: z.string().trim()
     .min(2, { message: "La marca debe tener al menos 2 caracteres" })
     .regex(/^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/, { message: "La marca debe contener solo letras y espacios" }),
-  model: z.string()
+  model: z.string().trim()
     .min(1, { message: "El modelo es obligatorio" })
     .regex(/^[a-zA-Z0-9\s\-_]+$/, { message: "El modelo debe ser alfanumérico (letras, números, espacios y guiones)" }),
   year: z.coerce.number({ invalid_type_error: "El año debe ser número" })
     .int({ message: "Año debe ser número entero" })
     .min(1885, { message: "Año inválido (mínimo 1885)" })
     .max(new Date().getFullYear() + 1, { message: "Año no puede ser futuro" }),
-  plate: z.string()
+  plate: z.string().trim()
     .min(6, { message: "La placa debe tener al menos 6 caracteres" })
     .max(10, { message: "La placa no debe exceder 10 caracteres" })
     .regex(/^[a-zA-Z]{3}[-\s]?[0-9]{3,4}$/, { message: "La placa debe tener el formato ecuatoriano válido (Ej: ABC-1234 o ABC-123)" })
-    .toUpperCase(),
-  vin: z.string()
+    .toUpperCase()
+    .refine((value) => !existingVehicles.some(v => v.plate.toUpperCase() === value.toUpperCase()), {
+      message: "Esta placa ya está registrada en otro vehículo"
+    }),
+  vin: z.string().trim()
     .regex(/^(?=.*[a-zA-Z])(?=.*[0-9])[a-zA-Z0-9]{17}$/, { message: "El VIN debe ser alfanumérico (letras y números) y tener exactamente 17 caracteres" })
-    .toUpperCase(),
+    .toUpperCase()
+    .refine((value) => !existingVehicles.some(v => v.vin.toUpperCase() === value.toUpperCase()), {
+      message: "Este VIN ya está registrado en otro vehículo"
+    }),
   initialKm: z.coerce.number({ invalid_type_error: "Debe ser un número" })
     .nonnegative({ message: "El kilometraje de registro no puede ser negativo" })
+    .max(1000000, { message: "El kilometraje inicial parece demasiado alto" }),
+  currentKm: z.coerce.number({ invalid_type_error: "Debe ser un número" })
+    .nonnegative({ message: "El kilometraje actual no puede ser negativo" })
+    .max(1000000, { message: "El kilometraje actual parece demasiado alto" })
+}).refine(data => data.currentKm >= data.initialKm, {
+  message: "El kilometraje actual no puede ser menor al kilometraje inicial",
+  path: ["currentKm"]
 });
 
-type VehicleFormValues = z.infer<typeof vehicleSchema>;
+type VehicleFormValues = z.infer<ReturnType<typeof createVehicleSchema>>;
 
 interface VehicleFormProps {
   userId: string;
+  existingVehicles: Vehicle[];
   onAddVehicle: (newVehicle: Vehicle) => void;
   onNavigateToDashboard: () => void;
 }
 
 export const VehicleForm: React.FC<VehicleFormProps> = ({
   userId,
+  existingVehicles,
   onAddVehicle,
   onNavigateToDashboard
 }) => {
+  const vehicleSchema = createVehicleSchema(existingVehicles);
+
   const {
     register,
     handleSubmit,
@@ -55,6 +73,7 @@ export const VehicleForm: React.FC<VehicleFormProps> = ({
     mode: "onChange",
     defaultValues: {
       initialKm: 0,
+      currentKm: 0,
       year: new Date().getFullYear(),
       name: '',
       brand: '',

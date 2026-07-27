@@ -9,17 +9,23 @@ import { User } from '../../types';
 
 import styles from './Auth.module.css';
 
+const isValidEmail = (value: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim().toLowerCase());
+
 const loginSchema = z.object({
-  email: z.string().min(1, { message: "El correo es obligatorio" }).email({ message: "Formato de correo inválido" }),
-  password: z.string().min(1, { message: "La contraseña es obligatoria" })
+  email: z.string().trim().min(1, { message: "El correo es obligatorio" }).refine((value) => isValidEmail(value), { message: "Formato de correo inválido" }),
+  password: z.string().trim().min(1, { message: "La contraseña es obligatoria" })
 });
 
 const registerSchema = z.object({
-  name: z.string()
-    .min(2, { message: "El nombre debe tener al menos 2 letras" })
-    .regex(/^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/, { message: "El nombre debe contener solo letras y espacios" }),
-  email: z.string().min(1, { message: "El correo es obligatorio" }).email({ message: "Formato de correo inválido" }),
-  password: z.string().min(6, { message: "La contraseña debe tener al menos 6 caracteres" }),
+  name: z.string().trim().min(2, { message: "El nombre debe tener al menos 2 letras" })
+    .regex(/^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/, { message: "El nombre debe contener solo letras y espacios" })
+    .refine((value) => value.split(/\s+/).filter(Boolean).length >= 2, {
+      message: "Ingresa nombre y apellido para continuar"
+    }),
+  email: z.string().trim().min(1, { message: "El correo es obligatorio" }).refine((value) => isValidEmail(value), { message: "Formato de correo inválido" }),
+  password: z.string().trim().min(6, { message: "La contraseña debe tener al menos 6 caracteres" }).refine((value) => /[A-Za-z]/.test(value) && /\d/.test(value), {
+    message: "La contraseña debe incluir letras y números"
+  }),
   role: z.enum(['user', 'admin']),
   avatar: z.string().optional()
 });
@@ -58,17 +64,26 @@ export const Auth: React.FC<AuthProps> = ({ onLoginSuccess }) => {
 
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      if (file.size > 2 * 1024 * 1024) {
-        setApiError('El archivo de imagen no debe superar los 2MB');
-        return;
-      }
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setAvatarBase64(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+    if (!file) {
+      return;
     }
+
+    if (!file.type.startsWith('image/')) {
+      setApiError('El archivo seleccionado debe ser una imagen');
+      return;
+    }
+
+    if (file.size > 2 * 1024 * 1024) {
+      setApiError('El archivo de imagen no debe superar los 2MB');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setAvatarBase64(reader.result as string);
+      setApiError(null);
+    };
+    reader.readAsDataURL(file);
   };
 
   const onLogin = (data: z.infer<typeof loginSchema>) => {
@@ -80,24 +95,31 @@ export const Auth: React.FC<AuthProps> = ({ onLoginSuccess }) => {
 
     let users: User[] = [];
     try {
-      users = JSON.parse(localStorage.getItem('users_database') || '[]');
-    } catch (e) {
+      const storedValue = localStorage.getItem('users_database');
+      users = storedValue ? JSON.parse(storedValue) : [];
+    } catch {
       users = [];
     }
 
-    const adminHash = bcrypt.hashSync("password123", 10);
+    if (!Array.isArray(users)) {
+      users = [];
+    }
+
+    const adminHash = bcrypt.hashSync('password123', 10);
+    const userHash = bcrypt.hashSync('password123', 10);
 
     if (users.length === 0) {
       users = [
-        { id: "u-admin-1", name: "Admin General", email: "admin@car.com", password: adminHash, role: "admin", avatar: "" }
+        { id: 'u-admin-1', name: 'Admin General', email: 'admin@car.com', password: adminHash, role: 'admin', avatar: '' },
+        { id: 'u-user-1', name: 'Juan Conductor', email: 'conductor@car.com', password: userHash, role: 'user', avatar: '' }
       ];
       localStorage.setItem('users_database', JSON.stringify(users));
     }
 
-    const foundIndex = users.findIndex((u: User) => u && u.email && u.email.trim().toLowerCase() === cleanEmail);
+    const foundIndex = users.findIndex((u: User) => u && typeof u.email === 'string' && u.email.trim().toLowerCase() === cleanEmail);
 
     if (foundIndex === -1) {
-      setApiError("Credenciales inválidas");
+      setApiError('Credenciales inválidas');
       return;
     }
 
@@ -120,9 +142,15 @@ export const Auth: React.FC<AuthProps> = ({ onLoginSuccess }) => {
     }
 
     if (isPasswordValid) {
-      onLoginSuccess(foundUser);
+      onLoginSuccess({
+        ...foundUser,
+        name: typeof foundUser.name === 'string' ? foundUser.name.trim() : 'Usuario',
+        email: cleanEmail,
+        role: foundUser.role === 'admin' ? 'admin' : 'user',
+        avatar: typeof foundUser.avatar === 'string' ? foundUser.avatar : '',
+      });
     } else {
-      setApiError("Credenciales inválidas");
+      setApiError('Credenciales inválidas');
     }
   };
 
@@ -135,12 +163,17 @@ export const Auth: React.FC<AuthProps> = ({ onLoginSuccess }) => {
 
     let users: User[] = [];
     try {
-      users = JSON.parse(localStorage.getItem('users_database') || '[]');
-    } catch (e) {
+      const storedValue = localStorage.getItem('users_database');
+      users = storedValue ? JSON.parse(storedValue) : [];
+    } catch {
       users = [];
     }
 
-    const emailExists = users.some((u: User) => u && u.email && u.email.trim().toLowerCase() === cleanEmail);
+    if (!Array.isArray(users)) {
+      users = [];
+    }
+
+    const emailExists = users.some((u: User) => u && typeof u.email === 'string' && u.email.trim().toLowerCase() === cleanEmail);
 
     if (emailExists) {
       setApiError("El correo electrónico ya se encuentra registrado");
@@ -155,7 +188,7 @@ export const Auth: React.FC<AuthProps> = ({ onLoginSuccess }) => {
       name: cleanName,
       email: cleanEmail,
       password: hashedPassword,
-      role: data.role,
+      role: data.role === 'admin' ? 'admin' : 'user',
       avatar: avatarBase64 || ''
     };
 
@@ -169,7 +202,7 @@ export const Auth: React.FC<AuthProps> = ({ onLoginSuccess }) => {
   };
 
   const handleQuickLogin = (email: string) => {
-    onLogin({ email, password: "password123" });
+    onLogin({ email, password: 'password123' });
   };
 
   return (

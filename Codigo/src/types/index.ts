@@ -1,9 +1,11 @@
+export type UserRole = 'user' | 'admin';
+
 export interface User {
   id: string;
   name: string;
   email: string;
-  password: string; // bcryptjs hash
-  role: 'user' | 'admin';
+  password: string; // Hash con bcryptjs
+  role: UserRole;
   avatar?: string; // Base64
 }
 
@@ -42,4 +44,31 @@ export interface MaintenanceRecord {
   km: number;
   cost: number;
   provider: string;
+}
+
+// --- TIPOS ADICIONALES PARA EL BACKEND Y LÓGICA DE NEGOCIO ---
+
+export type TrafficLight = 'green' | 'yellow' | 'red';
+
+export interface WearStatus {
+  pieceId: string;
+  wearKmPercent: number;
+  wearMonthsPercent: number;
+  currentLifePercent: number; // Max(wearKmPercent, wearMonthsPercent)
+  status: TrafficLight;
+  statusLabel: 'Óptimo' | 'Precaución' | 'Crítico';
+  remainingKm: number;
+  kmDrivenSinceChange: number;
+}
+
+export interface AppNotification {
+  id: string;
+  userId: string;
+  vehicleId: string;
+  pieceId: string;
+  title: string;
+  message: string;
+  type: 'warning' | 'danger';
+  isRead: boolean;
+  createdAt: string;
 }

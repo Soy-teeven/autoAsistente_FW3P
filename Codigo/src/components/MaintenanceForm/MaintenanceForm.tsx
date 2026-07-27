@@ -7,39 +7,37 @@ import { Piece } from '../../types';
 
 import styles from './MaintenanceForm.module.css';
 
-// Esquema de Validación Zod dinámico
-const createMaintenanceSchema = (lastChangeKm: number) => z.object({
+const createMaintenanceSchema = (lastChangeKm: number, currentVehicleKm: number) => z.object({
   type: z.enum(['Preventivo', 'Correctivo']),
-  date: z.string()
-    .min(1, { message: "La fecha es obligatoria" })
-    .refine(val => {
-      const date = new Date(val);
-      if (isNaN(date.getTime())) return false;
-      const minDate = new Date('1885-01-01');
-      const maxDate = new Date();
-      maxDate.setHours(23, 59, 59, 999);
-      return date >= minDate && date <= maxDate;
-    }, { message: "La fecha no debe ser futura ni anterior a 1885" }),
+  date: z.string().trim().min(1, { message: "La fecha es obligatoria" }).refine((value) => {
+    const selectedDate = new Date(value);
+    const today = new Date();
+    const minDate = new Date('1885-01-01');
+    today.setHours(23, 59, 59, 999);
+    selectedDate.setHours(0, 0, 0, 0);
+    return !Number.isNaN(selectedDate.getTime()) && selectedDate >= minDate && selectedDate <= today;
+  }, { message: "La fecha no puede ser futura ni anterior a 1885" }),
   km: z.coerce.number({
     invalid_type_error: "Debe ser un número"
   })
   .int({ message: "Debe ser un número entero" })
   .positive({ message: "El kilometraje debe ser mayor a cero" })
-  .refine(val => val > Number(lastChangeKm), { message: `El kilometraje debe ser mayor al último cambio registrado (${lastChangeKm.toLocaleString()} km)` }),
+  .max(1000000, { message: "El kilometraje parece demasiado alto" })
+  .refine(val => val >= Number(lastChangeKm), { message: `El kilometraje debe ser mayor o igual al último cambio registrado (${lastChangeKm.toLocaleString()} km)` })
+  .refine((value) => value <= currentVehicleKm, {
+    message: `El kilometraje no puede superar el odómetro actual (${currentVehicleKm} km)`
+  }),
   cost: z.coerce.number({
     invalid_type_error: "Debe ser un número"
   })
-  .positive({ message: "El costo debe ser mayor a cero" }),
-  provider: z.string().min(3, { message: "Especifica el taller o proveedor (mínimo 3 letras)" })
+  .positive({ message: "El costo debe ser mayor a cero" })
+  .max(1000000, { message: "El costo parece demasiado alto" }),
+  provider: z.string().trim().min(3, { message: "Especifica el taller o proveedor (mínimo 3 letras)" }).refine((value) => value.split(/\s+/).filter(Boolean).length >= 1, {
+    message: "Ingresa un nombre de taller o proveedor válido"
+  })
 });
 
-type MaintenanceFormValues = {
-  type: 'Preventivo' | 'Correctivo';
-  date: string;
-  km: number;
-  cost: number;
-  provider: string;
-};
+type MaintenanceFormValues = z.infer<ReturnType<typeof createMaintenanceSchema>>;
 
 interface MaintenanceFormProps {
   isOpen: boolean;
@@ -56,7 +54,7 @@ export const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
   currentVehicleKm,
   onRecordMaintenance
 }) => {
-  const maintenanceSchema = useMemo(() => createMaintenanceSchema(piece.lastChangeKm), [piece.lastChangeKm]);
+  const maintenanceSchema = useMemo(() => createMaintenanceSchema(piece.lastChangeKm, currentVehicleKm), [piece.lastChangeKm, currentVehicleKm]);
 
   const {
     register,

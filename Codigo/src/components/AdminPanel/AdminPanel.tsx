@@ -4,6 +4,52 @@ import { Vehicle, MaintenanceRecord } from '../../types';
 
 import styles from './AdminPanel.module.css';
 
+interface AdminUser {
+  name: string;
+  email: string;
+  role: 'user' | 'admin';
+  avatar?: string;
+}
+
+const normalizeUsers = (value: unknown): AdminUser[] => {
+  if (!Array.isArray(value)) {
+    return [
+      { name: 'Admin General', email: 'admin@car.com', role: 'admin' },
+      { name: 'Juan Conductor', email: 'conductor@car.com', role: 'user' },
+    ];
+  }
+
+  return value
+    .filter((item): item is Partial<AdminUser> => Boolean(item) && typeof item === 'object')
+    .map((item) => ({
+      name: typeof item.name === 'string' && item.name.trim() ? item.name.trim() : 'Usuario',
+      email: typeof item.email === 'string' && item.email.trim() ? item.email.trim().toLowerCase() : 'sin-email@local',
+      role: item.role === 'admin' ? 'admin' : 'user',
+      avatar: typeof item.avatar === 'string' ? item.avatar : '',
+    }));
+};
+
+const normalizeMaintenances = (value: unknown): MaintenanceRecord[] => {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value
+    .filter((item): item is Partial<MaintenanceRecord> => Boolean(item) && typeof item === 'object')
+    .map((item, index) => ({
+      id: typeof item.id === 'string' && item.id ? item.id : `m-${Date.now()}-${index}`,
+      vehicleId: typeof item.vehicleId === 'string' && item.vehicleId ? item.vehicleId : `v-${index}`,
+      vehicleName: typeof item.vehicleName === 'string' && item.vehicleName.trim() ? item.vehicleName.trim() : 'Vehículo',
+      pieceId: typeof item.pieceId === 'string' && item.pieceId ? item.pieceId : `p-${index}`,
+      pieceName: typeof item.pieceName === 'string' && item.pieceName.trim() ? item.pieceName.trim() : 'Pieza',
+      type: item.type === 'Correctivo' ? 'Correctivo' : 'Preventivo',
+      date: typeof item.date === 'string' && item.date.trim() ? item.date.trim() : new Date().toISOString().split('T')[0],
+      km: Number.isFinite(item.km) && item.km! >= 0 ? item.km! : 0,
+      cost: Number.isFinite(item.cost) && item.cost! >= 0 ? item.cost! : 0,
+      provider: typeof item.provider === 'string' && item.provider.trim() ? item.provider.trim() : 'Sin proveedor',
+    }));
+};
+
 interface AdminPanelProps {
   userRole: 'user' | 'admin';
   vehicles: Vehicle[];
@@ -27,20 +73,22 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
 
   // Cargar lista de usuarios registrados en LocalStorage
   const users = useMemo(() => {
-    const localUsers = localStorage.getItem('users_database');
-    if (localUsers) return JSON.parse(localUsers);
-    
-    return [
-      { name: "Admin General", email: "admin@car.com", role: "admin" }
-    ];
+    try {
+      const localUsers = localStorage.getItem('users_database');
+      return normalizeUsers(localUsers ? JSON.parse(localUsers) : null);
+    } catch {
+      return normalizeUsers(null);
+    }
   }, []);
 
   // Cargar historial de mantenimientos globales de LocalStorage
   const maintenances: MaintenanceRecord[] = useMemo(() => {
-    const history = localStorage.getItem('maintenance_history');
-    if (history) return JSON.parse(history);
-
-    return [];
+    try {
+      const history = localStorage.getItem('maintenance_history');
+      return normalizeMaintenances(history ? JSON.parse(history) : null);
+    } catch {
+      return normalizeMaintenances(null);
+    }
   }, [vehicles]);
 
   // KPI: Inversión Total Acumulada
@@ -140,7 +188,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                 </tr>
               </thead>
               <tbody>
-                {users.map((u: any, idx: number) => (
+                {users.map((u: AdminUser, idx: number) => (
                   <tr key={idx}>
                     <td>
                       {u.avatar ? (
