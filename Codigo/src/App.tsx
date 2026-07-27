@@ -95,11 +95,17 @@ function App() {
 
   const [activeVehicleId, setActiveVehicleId] = useState<string>(() => {
     const savedActiveVehicleId = localStorage.getItem('active_vehicle_id');
+    const initialUser = normalizeStoredUser(readStoredJSON('logged_user', null));
     const initialVehicles = normalizeStoredVehicles(readStoredJSON('user_vehicles', null), MOCK_VEHICLES);
-    if (savedActiveVehicleId && initialVehicles.some(v => v.id === savedActiveVehicleId)) {
+    // Solo considerar vehículos que pertenecen al usuario que inició sesión
+    const initialOwnVehicles = initialUser
+      ? initialVehicles.filter(v => v.userId === initialUser.id)
+      : initialVehicles;
+
+    if (savedActiveVehicleId && initialOwnVehicles.some(v => v.id === savedActiveVehicleId)) {
       return savedActiveVehicleId;
     }
-    return initialVehicles[0]?.id || MOCK_VEHICLES[0].id;
+    return initialOwnVehicles[0]?.id || MOCK_VEHICLES[0].id;
   });
 
   const [activeCategory, setActiveCategory] = useState<string>('todas');
@@ -123,6 +129,18 @@ function App() {
     return (localStorage.getItem('visual_theme') as 'light' | 'dark') || 'light';
   });
 
+  // Vehículos que pertenecen ÚNICAMENTE al usuario que inició sesión.
+  // Todo el árbol de UI del usuario normal (Dashboard, VehicleForm, notificaciones)
+  // debe usar esta lista, NUNCA el array `vehicles` completo (ese contiene los
+  // vehículos de TODOS los usuarios y solo debe llegar al AdminPanel).
+  // NOTA: esta declaración debe ir ANTES de los useEffect de abajo, porque
+  // uno de ellos depende de `myVehicles` (si no, JS lanza un
+  // ReferenceError por "temporal dead zone" al usar un const antes de definirlo).
+  const myVehicles = useMemo(() => {
+    if (!currentUser) return [];
+    return vehicles.filter(v => v.userId === currentUser.id);
+  }, [vehicles, currentUser]);
+
   useEffect(() => {
     localStorage.setItem('user_vehicles', JSON.stringify(vehicles));
   }, [vehicles]);
@@ -141,10 +159,10 @@ function App() {
   }, [theme]);
 
   useEffect(() => {
-    if (vehicles.length > 0 && !vehicles.some(v => v.id === activeVehicleId)) {
-      setActiveVehicleId(vehicles[0].id);
+    if (myVehicles.length > 0 && !myVehicles.some(v => v.id === activeVehicleId)) {
+      setActiveVehicleId(myVehicles[0].id);
     }
-  }, [activeVehicleId, vehicles]);
+  }, [activeVehicleId, myVehicles]);
 
   const handleLoginSuccess = (user: User) => {
     setCurrentUser(user);
@@ -157,8 +175,8 @@ function App() {
   };
 
   const activeVehicle = useMemo(() => {
-    return vehicles.find(v => v.id === activeVehicleId) || vehicles[0] || MOCK_VEHICLES[0];
-  }, [vehicles, activeVehicleId]);
+    return myVehicles.find(v => v.id === activeVehicleId) || myVehicles[0] || MOCK_VEHICLES[0];
+  }, [myVehicles, activeVehicleId]);
 
   const handleUpdateKm = (newKm: number) => {
     if (!Number.isFinite(newKm) || newKm < 0) {
@@ -180,8 +198,13 @@ function App() {
   };
 
   const handleAddVehicle = (newVehicle: Vehicle) => {
+    if (!currentUser) return;
+
     const normalizedVehicle: Vehicle = {
       ...newVehicle,
+      // Nunca confiar en el userId que venga del formulario: siempre se
+      // asigna al usuario con sesión activa.
+      userId: currentUser.id,
       plate: newVehicle.plate.trim().toUpperCase(),
       vin: newVehicle.vin.trim().toUpperCase(),
       currentKm: Math.max(newVehicle.currentKm, newVehicle.initialKm),
@@ -478,7 +501,7 @@ function App() {
                 setActiveVehicleId={setActiveVehicleId}
                 activeCategory={activeCategory}
                 setActiveCategory={setActiveCategory}
-                vehicles={vehicles}
+                vehicles={myVehicles}
                 onOpenMileageModal={() => setIsMileageModalOpen(true)}
                 onOpenMaintenanceModal={setSelectedPieceForMaint}
                 onUpdatePiece={handleUpdatePiece}
@@ -492,7 +515,7 @@ function App() {
               <VehicleForm 
                 key="new-vehicle"
                 userId={currentUser.id}
-                existingVehicles={vehicles}
+                existingVehicles={myVehicles}
                 onAddVehicle={handleAddVehicle}
                 onNavigateToDashboard={() => setActiveSection('dashboard')}
               />
