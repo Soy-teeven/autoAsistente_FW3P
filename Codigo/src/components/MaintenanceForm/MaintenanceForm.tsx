@@ -7,23 +7,31 @@ import { Piece } from '../../types';
 
 import styles from './MaintenanceForm.module.css';
 
-// Esquema de Validación Zod
-const maintenanceSchema = z.object({
+const createMaintenanceSchema = (currentVehicleKm: number) => z.object({
   type: z.enum(['Preventivo', 'Correctivo']),
-  date: z.string().min(1, { message: "La fecha es obligatoria" }),
+  date: z.string().trim().min(1, { message: "La fecha es obligatoria" }).refine((value) => {
+    const selectedDate = new Date(value);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    selectedDate.setHours(0, 0, 0, 0);
+    return !Number.isNaN(selectedDate.getTime()) && selectedDate <= today;
+  }, { message: "La fecha no puede ser futura" }),
   km: z.coerce.number({
     invalid_type_error: "Debe ser un número"
   })
   .int({ message: "Debe ser un número entero" })
-  .positive({ message: "El kilometraje debe ser mayor a cero" }),
+  .positive({ message: "El kilometraje debe ser mayor a cero" })
+  .refine((value) => value <= currentVehicleKm, {
+    message: `El kilometraje no puede superar el odómetro actual (${currentVehicleKm} km)`
+  }),
   cost: z.coerce.number({
     invalid_type_error: "Debe ser un número"
   })
   .positive({ message: "El costo debe ser mayor a cero" }),
-  provider: z.string().min(3, { message: "Especifica el taller o proveedor (mínimo 3 letras)" })
+  provider: z.string().trim().min(3, { message: "Especifica el taller o proveedor (mínimo 3 letras)" })
 });
 
-type MaintenanceFormValues = z.infer<typeof maintenanceSchema>;
+type MaintenanceFormValues = z.infer<ReturnType<typeof createMaintenanceSchema>>;
 
 interface MaintenanceFormProps {
   isOpen: boolean;
@@ -40,6 +48,8 @@ export const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
   currentVehicleKm,
   onRecordMaintenance
 }) => {
+  const maintenanceSchema = createMaintenanceSchema(currentVehicleKm);
+
   const {
     register,
     handleSubmit,
@@ -47,7 +57,7 @@ export const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
     reset
   } = useForm<MaintenanceFormValues>({
     resolver: zodResolver(maintenanceSchema),
-    mode: "onBlur",
+    mode: "onChange",
     defaultValues: {
       type: 'Preventivo',
       date: new Date().toISOString().split('T')[0],

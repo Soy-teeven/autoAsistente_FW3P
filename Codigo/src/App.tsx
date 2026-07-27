@@ -398,6 +398,7 @@ function App() {
               <VehicleForm 
                 key="new-vehicle"
                 userId={currentUser.id}
+                existingVehicles={vehicles}
                 onAddVehicle={handleAddVehicle}
                 onNavigateToDashboard={() => setActiveSection('dashboard')}
               />
