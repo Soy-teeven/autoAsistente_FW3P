@@ -9,7 +9,7 @@ import {
   FaInfoCircle, 
   FaSlidersH,
   FaCar,
-  FaChevronDown
+  FaChevronUp
 } from 'react-icons/fa';
 import { 
   GiStopSign,
@@ -28,51 +28,9 @@ export type { Piece, Vehicle };
 
 import styles from './Dashboard.module.css';
 
-export const MOCK_VEHICLES: Vehicle[] = [
-  {
-    id: 'v1',
-    userId: 'u-user-1',
-    name: 'Toyota Corolla 2020',
-    brand: 'Toyota',
-    model: 'Corolla',
-    year: 2020,
-    plate: 'ABC-1234',
-    vin: '1HGCR2F83HA123456',
-    initialKm: 10000,
-    currentKm: 45000,
-    pieces: [
-      { id: 'p1', name: 'Pastillas de Freno Delanteras', category: 'frenos', lifeKm: 30000, lifeMonths: 24, lastChangeKm: 18000, lastChangeDate: '2024-05-10' },
-      { id: 'p2', name: 'Amortiguadores Traseros', category: 'suspensión', lifeKm: 60000, lifeMonths: 48, lastChangeKm: 0, lastChangeDate: '2020-01-15' },
-      { id: 'p3', name: 'Aceite Sintético 5W-30', category: 'motor', lifeKm: 10000, lifeMonths: 12, lastChangeKm: 42000, lastChangeDate: '2025-11-20' },
-      { id: 'p4', name: 'Líquido de Transmisión', category: 'transmisión', lifeKm: 80000, lifeMonths: 60, lastChangeKm: 10000, lastChangeDate: '2021-06-12' },
-      { id: 'p5', name: 'Batería 12V LTH', category: 'eléctrico', lifeKm: 50000, lifeMonths: 36, lastChangeKm: 15000, lastChangeDate: '2023-02-18' },
-      { id: 'p6', name: 'Neumáticos Delanteros Michelin', category: 'neumáticos', lifeKm: 40000, lifeMonths: 48, lastChangeKm: 12000, lastChangeDate: '2022-09-05' },
-      { id: 'p7', name: 'Líquido Refrigerante', category: 'enfriamiento', lifeKm: 50000, lifeMonths: 24, lastChangeKm: 10000, lastChangeDate: '2024-01-10' },
-      { id: 'p8', name: 'Alineación y Balanceo', category: 'dirección', lifeKm: 10000, lifeMonths: 6, lastChangeKm: 40000, lastChangeDate: '2026-03-01' },
-    ]
-  },
-  {
-    id: 'v2',
-    userId: 'u-user-1',
-    name: 'Mazda 3 Sport 2018',
-    brand: 'Mazda',
-    model: '3 Sport',
-    year: 2018,
-    plate: 'XYZ-9876',
-    vin: 'JM1BN1U52K1987654',
-    initialKm: 20000,
-    currentKm: 98000,
-    pieces: [
-      { id: 'p21', name: 'Discos de Freno Delanteros', category: 'frenos', lifeKm: 50000, lifeMonths: 36, lastChangeKm: 50000, lastChangeDate: '2021-08-20' },
-      { id: 'p22', name: 'Bujías de Iridio', category: 'motor', lifeKm: 80000, lifeMonths: 48, lastChangeKm: 20000, lastChangeDate: '2020-03-10' },
-      { id: 'p23', name: 'Neumáticos Deportivos Toyo', category: 'neumáticos', lifeKm: 35000, lifeMonths: 36, lastChangeKm: 70000, lastChangeDate: '2024-02-15' },
-    ]
-  }
-];
+export const MOCK_VEHICLES: Vehicle[] = [];
 
 export interface DashboardProps {
-  role: 'user' | 'admin';
-  setRole: (role: 'user' | 'admin') => void;
   activeVehicleId: string;
   setActiveVehicleId: (id: string) => void;
   activeCategory: string;
@@ -83,11 +41,10 @@ export interface DashboardProps {
   onUpdatePiece: (piece: Piece) => void;
   highlightedPieceId: string | null;
   setHighlightedPieceId: (id: string | null) => void;
+  onNavigateToNewVehicle?: () => void;
 }
 
 export const Dashboard: React.FC<DashboardProps> = ({
-  role,
-  setRole,
   activeVehicleId,
   setActiveVehicleId,
   activeCategory,
@@ -97,7 +54,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
   onOpenMaintenanceModal,
   onUpdatePiece,
   highlightedPieceId,
-  setHighlightedPieceId
+  setHighlightedPieceId,
+  onNavigateToNewVehicle
 }) => {
   const [editingPiece, setEditingPiece] = useState<Piece | null>(null);
   const [expandedCardId, setExpandedCardId] = useState<string | null>(null);
@@ -133,7 +91,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
   // Obtener vehículo seleccionado
   const selectedVehicle = useMemo(() => {
-    return vehicles.find(v => v.id === activeVehicleId) || vehicles[0] || MOCK_VEHICLES[0];
+    return vehicles.find(v => v.id === activeVehicleId) || vehicles[0] || null;
   }, [vehicles, activeVehicleId]);
 
   const categories = [
@@ -196,6 +154,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
   // RF08: Filtrado Y Ordenamiento por urgencia de desgaste (rojo -> amarillo -> verde)
   const sortedAndFilteredPieces = useMemo(() => {
+    if (!selectedVehicle) return [];
     const piecesToFilter = activeCategory === 'todas' 
       ? selectedVehicle.pieces 
       : selectedVehicle.pieces.filter(p => p.category === activeCategory);
@@ -207,6 +166,40 @@ export const Dashboard: React.FC<DashboardProps> = ({
     }).sort((a, b) => b.wearInfo.wearPercentage - a.wearInfo.wearPercentage);
   }, [selectedVehicle, activeCategory]);
 
+  if (!selectedVehicle) {
+    return (
+      <div className={styles.dashboardContainer}>
+        <header className={styles.headerSection}>
+          <div className={styles.titleContainer}>
+            <h1>Control de Mantenimiento</h1>
+            <p className="d-flex align-items-center gap-2">
+              Supervisa el desgaste de las piezas de tu coche en tiempo real.
+            </p>
+          </div>
+        </header>
+
+        <div className="alert alert-warning p-4 d-flex align-items-center gap-3" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-color)', borderRadius: '16px' }}>
+          <div className="bg-warning text-dark p-3 rounded-circle d-flex align-items-center justify-content-center" style={{ width: 56, height: 56, flexShrink: 0 }}>
+            <FaExclamationTriangle className="fs-3" />
+          </div>
+          <div>
+            <h4 className="alert-heading fw-bold mb-1" style={{ color: 'var(--text-primary)' }}>Se necesita registrar un vehículo</h4>
+            <p className="mb-3" style={{ color: 'var(--text-secondary)' }}>Es necesario registrar un vehículo en la aplicación para poder visualizar su estado y realizar el seguimiento de mantenimiento.</p>
+            {onNavigateToNewVehicle && (
+              <button 
+                className="btn-duo-3d btn-duo-primary"
+                onClick={onNavigateToNewVehicle}
+                style={{ padding: '8px 16px', fontSize: '0.95rem', borderRadius: '12px' }}
+              >
+                Registrar un vehículo ahora
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className={styles.dashboardContainer}>
       <header className={styles.headerSection}>
@@ -214,13 +207,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
           <h1>Control de Mantenimiento</h1>
           <p className="d-flex align-items-center gap-2">
             Supervisa el desgaste de las piezas de tu coche en tiempo real.
-            <span 
-              className={`badge cursor-pointer ${role === 'admin' ? 'bg-danger' : 'bg-primary'}`} 
-              onClick={() => setRole(role === 'user' ? 'admin' : 'user')}
-              title="Haz clic para alternar rol"
-            >
-              Rol: {role.toUpperCase()}
-            </span>
           </p>
         </div>
 
@@ -230,13 +216,14 @@ export const Dashboard: React.FC<DashboardProps> = ({
             <FaCar />
           </div>
           <div className={styles.vehicleSelectorMain}>
-            <span className={styles.vehicleSelectLabel}>Vehículo Activo</span>
+            <span className={styles.vehicleSelectLabel}>Cambiar Vehículo ▾</span>
             <select 
               id="vehicle-active-select"
               className={styles.vehicleSelect} 
               value={activeVehicleId}
               onChange={(e) => setActiveVehicleId(e.target.value)}
-              aria-label="Seleccionar Vehículo Activo"
+              aria-label="Seleccionar Vehículo Seleccionado"
+              title="Haz clic para seleccionar otro de tus vehículos registrados"
             >
               {vehicles.map(v => (
                 <option key={v.id} value={v.id}>
@@ -248,7 +235,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
           <button 
             className="btn-duo-3d btn-duo-primary ms-2"
             onClick={onOpenMileageModal}
-            title="Actualizar Kilometraje del Vehículo Activo"
+            title="Actualizar Kilometraje del Vehículo Seleccionado"
             style={{ minHeight: '38px', padding: '4px 14px', fontSize: '0.85rem', borderRadius: '12px' }}
           >
             Actualizar Km
@@ -309,18 +296,18 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 const isExpanded = piece.id === expandedCardId || piece.id === highlightedPieceId;
 
                 return (
-                  <article 
-                    id={piece.id}
-                    key={piece.id} 
-                    className={`${styles.pieceCard} ${status === 'red' ? styles.urgentPulse : ''} ${piece.id === highlightedPieceId ? styles.highlightedCard : ''} ${isExpanded ? styles.cardExpanded : ''}`}
-                    style={{ position: 'relative' }}
-                    onClick={() => {
-                      if (piece.id === highlightedPieceId) {
-                        setHighlightedPieceId(null);
-                      }
-                      setExpandedCardId(prev => prev === piece.id ? null : piece.id);
-                    }}
-                  >
+                  <div key={piece.id} className={styles.pieceCardWrapper}>
+                    <article 
+                      id={piece.id}
+                      className={`${styles.pieceCard} ${status === 'red' ? styles.urgentPulse : ''} ${piece.id === highlightedPieceId ? styles.highlightedCard : ''} ${isExpanded ? styles.cardExpanded : ''}`}
+                      style={{ position: 'relative' }}
+                      onClick={() => {
+                        if (piece.id === highlightedPieceId) {
+                          setHighlightedPieceId(null);
+                        }
+                        setExpandedCardId(prev => prev === piece.id ? null : piece.id);
+                      }}
+                    >
                     {/* Front Panel (Always visible when not expanded/hovered) */}
                     <div className={styles.cardFrontContent}>
                       <div className={styles.cardHeader}>
@@ -365,7 +352,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                       {/* H8 - Visual indicator for expandable details */}
                       <div className={styles.expandIndicator}>
                         <span>Ver detalles y acciones</span>
-                        <FaChevronDown />
+                        <FaChevronUp />
                       </div>
                     </div>
 
@@ -431,6 +418,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                       </div>
                     </div>
                   </article>
+                  </div>
                 );
               })}
             </motion.div>

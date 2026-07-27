@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
-import { Dashboard, MOCK_VEHICLES } from './components/Dashboard/Dashboard';
+import { Dashboard } from './components/Dashboard/Dashboard';
 import { MileageModal } from './components/MileageModal/MileageModal';
 import { NotificationCenter } from './components/NotificationCenter/NotificationCenter';
 import { Auth } from './components/Auth/Auth';
@@ -46,14 +46,14 @@ function App() {
           return v;
         });
       } catch (e) {
-        return MOCK_VEHICLES;
+        return [];
       }
     }
-    return MOCK_VEHICLES;
+    return [];
   });
 
   const [activeVehicleId, setActiveVehicleId] = useState<string>(() => {
-    return localStorage.getItem('active_vehicle_id') || MOCK_VEHICLES[0].id;
+    return localStorage.getItem('active_vehicle_id') || '';
   });
 
   const [activeCategory, setActiveCategory] = useState<string>('todas');
@@ -85,6 +85,13 @@ function App() {
     localStorage.setItem('active_vehicle_id', activeVehicleId);
   }, [activeVehicleId]);
 
+  // Sincronizar activeVehicleId si se agrega un primer vehículo o cambia la lista
+  useEffect(() => {
+    if (vehicles.length > 0 && (!activeVehicleId || !vehicles.some(v => v.id === activeVehicleId))) {
+      setActiveVehicleId(vehicles[0].id);
+    }
+  }, [vehicles, activeVehicleId]);
+
   useEffect(() => {
     localStorage.setItem('read_notifications', JSON.stringify(readNotificationIds));
   }, [readNotificationIds]);
@@ -105,13 +112,13 @@ function App() {
   };
 
   const activeVehicle = useMemo(() => {
-    return vehicles.find(v => v.id === activeVehicleId) || vehicles[0] || MOCK_VEHICLES[0];
+    return vehicles.find(v => v.id === activeVehicleId) || vehicles[0] || null;
   }, [vehicles, activeVehicleId]);
 
   const handleUpdateKm = (newKm: number) => {
     setVehicles(prevVehicles => 
       prevVehicles.map(v => 
-        v.id === activeVehicleId 
+        v.id === activeVehicle?.id 
           ? { ...v, currentKm: newKm } 
           : v
       )
@@ -126,7 +133,7 @@ function App() {
   const handleUpdatePiece = (updatedPiece: Piece) => {
     setVehicles(prevVehicles => 
       prevVehicles.map(v => {
-        if (v.id === activeVehicleId) {
+        if (v.id === activeVehicle?.id) {
           return {
             ...v,
             pieces: v.pieces.map(p => p.id === updatedPiece.id ? updatedPiece : p)
@@ -145,11 +152,15 @@ function App() {
     provider: string,
     type: 'Preventivo' | 'Correctivo'
   ) => {
+    if (!activeVehicle) return;
+
     setVehicles(prevVehicles => 
       prevVehicles.map(v => {
-        if (v.id === activeVehicleId) {
+        if (v.id === activeVehicle?.id) {
+          const newCurrentKm = Math.max(v.currentKm, lastChangeKm);
           return {
             ...v,
+            currentKm: newCurrentKm,
             pieces: v.pieces.map(p => 
               p.id === pieceId 
                 ? { ...p, lastChangeKm, lastChangeDate } 
@@ -239,8 +250,8 @@ function App() {
 
             {/* Centro de Notificaciones */}
             <NotificationCenter 
-              pieces={activeVehicle.pieces}
-              currentKm={activeVehicle.currentKm}
+              pieces={activeVehicle ? activeVehicle.pieces : []}
+              currentKm={activeVehicle ? activeVehicle.currentKm : 0}
               readIds={readNotificationIds}
               onMarkAsRead={handleMarkAsRead}
               onMarkAllAsRead={handleMarkAllAsRead}
@@ -371,15 +382,6 @@ function App() {
             {activeSection === 'dashboard' && (
               <Dashboard 
                 key="dashboard"
-                role={currentUser.role}
-                setRole={(newRole) => {
-                  const updated = { ...currentUser, role: newRole };
-                  setCurrentUser(updated);
-                  localStorage.setItem('logged_user', JSON.stringify(updated));
-                  const db = JSON.parse(localStorage.getItem('users_database') || '[]');
-                  const sync = db.map((u: User) => u.email === currentUser.email ? { ...u, role: newRole } : u);
-                  localStorage.setItem('users_database', JSON.stringify(sync));
-                }}
                 activeVehicleId={activeVehicleId}
                 setActiveVehicleId={setActiveVehicleId}
                 activeCategory={activeCategory}
@@ -390,6 +392,7 @@ function App() {
                 onUpdatePiece={handleUpdatePiece}
                 highlightedPieceId={highlightedPieceId}
                 setHighlightedPieceId={setHighlightedPieceId}
+                onNavigateToNewVehicle={() => setActiveSection('new-vehicle')}
               />
             )}
 
@@ -428,7 +431,7 @@ function App() {
 
       {/* --- Modales --- */}
       <AnimatePresence>
-        {isMileageModalOpen && (
+        {isMileageModalOpen && activeVehicle && (
           <MileageModal 
             isOpen={isMileageModalOpen}
             onClose={() => setIsMileageModalOpen(false)}
@@ -440,7 +443,7 @@ function App() {
       </AnimatePresence>
 
       <AnimatePresence>
-        {selectedPieceForMaint && (
+        {selectedPieceForMaint && activeVehicle && (
           <MaintenanceForm 
             isOpen={!!selectedPieceForMaint}
             onClose={() => setSelectedPieceForMaint(null)}

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -7,15 +7,25 @@ import { Piece } from '../../types';
 
 import styles from './MaintenanceForm.module.css';
 
-// Esquema de Validación Zod
-const maintenanceSchema = z.object({
+// Esquema de Validación Zod dinámico
+const createMaintenanceSchema = (lastChangeKm: number) => z.object({
   type: z.enum(['Preventivo', 'Correctivo']),
-  date: z.string().min(1, { message: "La fecha es obligatoria" }),
+  date: z.string()
+    .min(1, { message: "La fecha es obligatoria" })
+    .refine(val => {
+      const date = new Date(val);
+      if (isNaN(date.getTime())) return false;
+      const minDate = new Date('1885-01-01');
+      const maxDate = new Date();
+      maxDate.setHours(23, 59, 59, 999);
+      return date >= minDate && date <= maxDate;
+    }, { message: "La fecha no debe ser futura ni anterior a 1885" }),
   km: z.coerce.number({
     invalid_type_error: "Debe ser un número"
   })
   .int({ message: "Debe ser un número entero" })
-  .positive({ message: "El kilometraje debe ser mayor a cero" }),
+  .positive({ message: "El kilometraje debe ser mayor a cero" })
+  .refine(val => val > Number(lastChangeKm), { message: `El kilometraje debe ser mayor al último cambio registrado (${lastChangeKm.toLocaleString()} km)` }),
   cost: z.coerce.number({
     invalid_type_error: "Debe ser un número"
   })
@@ -23,7 +33,13 @@ const maintenanceSchema = z.object({
   provider: z.string().min(3, { message: "Especifica el taller o proveedor (mínimo 3 letras)" })
 });
 
-type MaintenanceFormValues = z.infer<typeof maintenanceSchema>;
+type MaintenanceFormValues = {
+  type: 'Preventivo' | 'Correctivo';
+  date: string;
+  km: number;
+  cost: number;
+  provider: string;
+};
 
 interface MaintenanceFormProps {
   isOpen: boolean;
@@ -40,6 +56,8 @@ export const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
   currentVehicleKm,
   onRecordMaintenance
 }) => {
+  const maintenanceSchema = useMemo(() => createMaintenanceSchema(piece.lastChangeKm), [piece.lastChangeKm]);
+
   const {
     register,
     handleSubmit,
@@ -47,12 +65,12 @@ export const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
     reset
   } = useForm<MaintenanceFormValues>({
     resolver: zodResolver(maintenanceSchema),
-    mode: "onBlur",
+    mode: "onChange",
     defaultValues: {
       type: 'Preventivo',
       date: new Date().toISOString().split('T')[0],
       km: currentVehicleKm,
-      cost: 50,
+      cost: 0,
       provider: ''
     }
   });
@@ -77,7 +95,7 @@ export const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className={styles.modalOverlay} onClick={onClose}>
+    <div className={styles.modalOverlay}>
       <div 
         className={styles.modalContainer}
         onClick={(e) => e.stopPropagation()}
@@ -129,6 +147,7 @@ export const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
                   {...register("date")}
                 />
               </div>
+              <span className={styles.fieldHelper}>Último cambio registrado: {piece.lastChangeDate}</span>
               {errors.date && (
                 <span className={styles.errorMessage}>{errors.date.message}</span>
               )}
@@ -148,6 +167,7 @@ export const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
                   {...register("km")}
                 />
               </div>
+              <span className={styles.fieldHelper}>Último cambio registrado: {piece.lastChangeKm.toLocaleString()} km</span>
               {errors.km && (
                 <span className={styles.errorMessage}>{errors.km.message}</span>
               )}

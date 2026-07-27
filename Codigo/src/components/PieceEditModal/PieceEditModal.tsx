@@ -19,7 +19,16 @@ const pieceSchema = z.object({
   lifeKm: z.coerce.number().positive({ message: "La vida útil en km debe ser mayor a 0" }),
   lifeMonths: z.coerce.number().positive({ message: "La vida útil en meses debe ser mayor a 0" }),
   lastChangeKm: z.coerce.number().nonnegative({ message: "El último cambio en km no puede ser negativo" }),
-  lastChangeDate: z.string().min(1, { message: "La fecha de último cambio es obligatoria" })
+  lastChangeDate: z.string()
+    .min(1, { message: "La fecha de último cambio es obligatoria" })
+    .refine(val => {
+      const date = new Date(val);
+      if (isNaN(date.getTime())) return false;
+      const minDate = new Date('1885-01-01');
+      const maxDate = new Date();
+      maxDate.setHours(23, 59, 59, 999);
+      return date >= minDate && date <= maxDate;
+    }, { message: "La fecha no debe ser futura ni anterior a 1885" })
 });
 
 type PieceFormValues = z.infer<typeof pieceSchema>;
@@ -36,7 +45,7 @@ export const PieceEditModal: React.FC<PieceEditModalProps> = ({
     formState: { errors, isValid }
   } = useForm<PieceFormValues>({
     resolver: zodResolver(pieceSchema),
-    mode: "onBlur",
+    mode: "onChange",
     defaultValues: {
       lifeKm: piece.lifeKm,
       lifeMonths: piece.lifeMonths,
@@ -60,7 +69,7 @@ export const PieceEditModal: React.FC<PieceEditModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className={styles.modalOverlay} onClick={onClose}>
+    <div className={styles.modalOverlay}>
       <motion.div 
         className={styles.modalContainer}
         onClick={(e) => e.stopPropagation()}

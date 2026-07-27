@@ -68,25 +68,41 @@
 
 .vehicleSelectLabel {
   font-family: var(--font-heading);
-  font-size: 0.75rem;
+  font-size: 0.72rem;
   font-weight: 800;
-  color: var(--text-secondary);
+  color: var(--duo-blue-dark);
   text-transform: uppercase;
   letter-spacing: 0.5px;
   line-height: 1;
+  margin-bottom: 2px;
+}
+
+[data-theme="dark"] .vehicleSelectLabel {
+  color: #64b5f6;
 }
 
 .vehicleSelect {
   font-family: var(--font-body);
   font-weight: 800;
-  font-size: 1.05rem;
+  font-size: 1rem;
   color: var(--text-primary);
-  border: none;
-  background-color: transparent;
+  border: 2px dashed rgba(28, 176, 246, 0.4);
+  background-color: var(--bg-input);
+  border-radius: 10px;
   cursor: pointer;
   outline: none;
-  padding: 0;
+  padding: 6px 12px;
   margin: 0;
+  transition: all var(--transition-fast) ease-in-out;
+  display: inline-flex;
+  align-items: center;
+}
+
+.vehicleSelect:hover {
+  border-color: var(--duo-blue);
+  background-color: var(--bg-card);
+  transform: scale(1.02);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
 .vehicleSelect option {
@@ -161,6 +177,13 @@
 }
 
 /* Tarjeta de Pieza (H4 - Consistencia y H8 - Diseño estético y minimalista) */
+.pieceCardWrapper {
+  padding: 15px;
+  margin: -15px;
+  display: flex;
+  flex-direction: column;
+}
+
 .pieceCard {
   background-color: var(--bg-card);
   border: 2px solid var(--border-color);
@@ -174,11 +197,6 @@
   overflow: hidden;
   height: 275px; /* Fixed height so all cards are perfectly uniform */
   transition: transform var(--transition-fast), box-shadow var(--transition-fast);
-}
-
-.pieceCard:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 0 var(--border-shadow);
 }
 
 /* Contenido frontal de la tarjeta */
@@ -433,10 +451,14 @@
   text-align: left;
 }
 
-/* Mostrar panel al hover o click */
+/* Mostrar panel al hover o click con espacio de tolerancia en el wrapper */
 @media (hover: hover) {
-  .pieceCard:hover .slideUpPanel {
+  .pieceCardWrapper:hover .slideUpPanel {
     bottom: 0;
+  }
+  .pieceCardWrapper:hover .pieceCard {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 0 var(--border-shadow);
   }
 }
 

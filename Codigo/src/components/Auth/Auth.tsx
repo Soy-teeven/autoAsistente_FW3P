@@ -15,7 +15,9 @@ const loginSchema = z.object({
 });
 
 const registerSchema = z.object({
-  name: z.string().min(2, { message: "El nombre debe tener al menos 2 letras" }),
+  name: z.string()
+    .min(2, { message: "El nombre debe tener al menos 2 letras" })
+    .regex(/^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/, { message: "El nombre debe contener solo letras y espacios" }),
   email: z.string().min(1, { message: "El correo es obligatorio" }).email({ message: "Formato de correo inválido" }),
   password: z.string().min(6, { message: "La contraseña debe tener al menos 6 caracteres" }),
   role: z.enum(['user', 'admin']),
@@ -84,12 +86,10 @@ export const Auth: React.FC<AuthProps> = ({ onLoginSuccess }) => {
     }
 
     const adminHash = bcrypt.hashSync("password123", 10);
-    const userHash = bcrypt.hashSync("password123", 10);
 
     if (users.length === 0) {
       users = [
-        { id: "u-admin-1", name: "Admin General", email: "admin@car.com", password: adminHash, role: "admin", avatar: "" },
-        { id: "u-user-1", name: "Juan Conductor", email: "conductor@car.com", password: userHash, role: "user", avatar: "" }
+        { id: "u-admin-1", name: "Admin General", email: "admin@car.com", password: adminHash, role: "admin", avatar: "" }
       ];
       localStorage.setItem('users_database', JSON.stringify(users));
     }
@@ -105,7 +105,7 @@ export const Auth: React.FC<AuthProps> = ({ onLoginSuccess }) => {
     let isPasswordValid = false;
 
     try {
-      if (foundUser.password && (foundUser.password.startsWith('$2a$') || foundUser.password.startsWith('$2b$'))) {
+      if (foundUser.password && foundUser.password.startsWith('$2')) {
         isPasswordValid = bcrypt.compareSync(cleanPassword, foundUser.password);
       } else {
         isPasswordValid = cleanPassword === foundUser.password;
@@ -368,7 +368,7 @@ export const Auth: React.FC<AuthProps> = ({ onLoginSuccess }) => {
 
         <div className={styles.demoAccounts}>
           <p className="small text-muted text-center m-0 mt-3 mb-2">
-            <strong>Cuentas Demo (Contraseña: <code>password123</code>):</strong>
+            <strong>Cuenta de Administrador (Contraseña: <code>password123</code>):</strong>
           </p>
           <div className="d-flex justify-content-center gap-2">
             <button 
@@ -376,14 +376,7 @@ export const Auth: React.FC<AuthProps> = ({ onLoginSuccess }) => {
               className="btn btn-sm btn-outline-primary d-flex align-items-center gap-1"
               onClick={() => handleQuickLogin('admin@car.com')}
             >
-              <FaShieldAlt /> Admin
-            </button>
-            <button 
-              type="button" 
-              className="btn btn-sm btn-outline-secondary d-flex align-items-center gap-1"
-              onClick={() => handleQuickLogin('conductor@car.com')}
-            >
-              <FaCar /> Usuario
+              <FaShieldAlt /> Iniciar como Administrador
             </button>
           </div>
         </div>

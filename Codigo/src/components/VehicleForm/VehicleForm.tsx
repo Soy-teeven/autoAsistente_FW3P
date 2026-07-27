@@ -10,26 +10,26 @@ import styles from './VehicleForm.module.css';
 // Esquema de Validación Zod (RF04 & RNF04)
 const vehicleSchema = z.object({
   name: z.string().min(2, { message: "El apodo del auto debe tener al menos 2 caracteres" }),
-  brand: z.string().min(2, { message: "La marca debe tener al menos 2 caracteres" }),
-  model: z.string().min(1, { message: "El modelo es obligatorio" }),
+  brand: z.string()
+    .min(2, { message: "La marca debe tener al menos 2 caracteres" })
+    .regex(/^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/, { message: "La marca debe contener solo letras y espacios" }),
+  model: z.string()
+    .min(1, { message: "El modelo es obligatorio" })
+    .regex(/^[a-zA-Z0-9\s\-_]+$/, { message: "El modelo debe ser alfanumérico (letras, números, espacios y guiones)" }),
   year: z.coerce.number({ invalid_type_error: "El año debe ser número" })
     .int({ message: "Año debe ser número entero" })
-    .min(1900, { message: "Año inválido (mínimo 1900)" })
+    .min(1885, { message: "Año inválido (mínimo 1885)" })
     .max(new Date().getFullYear() + 1, { message: "Año no puede ser futuro" }),
   plate: z.string()
     .min(6, { message: "La placa debe tener al menos 6 caracteres" })
     .max(10, { message: "La placa no debe exceder 10 caracteres" })
+    .regex(/^[a-zA-Z]{3}[-\s]?[0-9]{3,4}$/, { message: "La placa debe tener el formato ecuatoriano válido (Ej: ABC-1234 o ABC-123)" })
     .toUpperCase(),
   vin: z.string()
-    .length(17, { message: "El VIN debe tener exactamente 17 caracteres (letras y números)" })
+    .regex(/^(?=.*[a-zA-Z])(?=.*[0-9])[a-zA-Z0-9]{17}$/, { message: "El VIN debe ser alfanumérico (letras y números) y tener exactamente 17 caracteres" })
     .toUpperCase(),
   initialKm: z.coerce.number({ invalid_type_error: "Debe ser un número" })
-    .nonnegative({ message: "El kilometraje inicial no puede ser negativo" }),
-  currentKm: z.coerce.number({ invalid_type_error: "Debe ser un número" })
-    .nonnegative({ message: "El kilometraje actual no puede ser negativo" })
-}).refine(data => data.currentKm >= data.initialKm, {
-  message: "El kilometraje actual no puede ser menor al kilometraje inicial",
-  path: ["currentKm"]
+    .nonnegative({ message: "El kilometraje de registro no puede ser negativo" })
 });
 
 type VehicleFormValues = z.infer<typeof vehicleSchema>;
@@ -52,7 +52,16 @@ export const VehicleForm: React.FC<VehicleFormProps> = ({
     reset
   } = useForm<VehicleFormValues>({
     resolver: zodResolver(vehicleSchema),
-    mode: "onBlur"
+    mode: "onChange",
+    defaultValues: {
+      initialKm: 0,
+      year: new Date().getFullYear(),
+      name: '',
+      brand: '',
+      model: '',
+      plate: '',
+      vin: ''
+    }
   });
 
   const onSubmit = (data: VehicleFormValues) => {
@@ -60,11 +69,11 @@ export const VehicleForm: React.FC<VehicleFormProps> = ({
 
     // Piezas iniciales estándar asignadas con límites de fábrica
     const defaultPieces: Piece[] = [
-      { id: `p-new-1-${Date.now()}`, name: 'Pastillas de Freno Delanteras', category: 'frenos', lifeKm: 30000, lifeMonths: 24, lastChangeKm: data.currentKm, lastChangeDate: today },
-      { id: `p-new-2-${Date.now()}`, name: 'Aceite de Motor Sintético', category: 'motor', lifeKm: 10000, lifeMonths: 12, lastChangeKm: data.currentKm, lastChangeDate: today },
-      { id: `p-new-3-${Date.now()}`, name: 'Neumáticos Delanteros', category: 'neumáticos', lifeKm: 40000, lifeMonths: 48, lastChangeKm: data.currentKm, lastChangeDate: today },
-      { id: `p-new-4-${Date.now()}`, name: 'Amortiguadores Traseros', category: 'suspensión', lifeKm: 60000, lifeMonths: 48, lastChangeKm: data.currentKm, lastChangeDate: today },
-      { id: `p-new-5-${Date.now()}`, name: 'Batería 12V', category: 'eléctrico', lifeKm: 50000, lifeMonths: 36, lastChangeKm: data.currentKm, lastChangeDate: today },
+      { id: `p-new-1-${Date.now()}`, name: 'Pastillas de Freno Delanteras', category: 'frenos', lifeKm: 30000, lifeMonths: 24, lastChangeKm: data.initialKm, lastChangeDate: today },
+      { id: `p-new-2-${Date.now()}`, name: 'Aceite de Motor Sintético', category: 'motor', lifeKm: 10000, lifeMonths: 12, lastChangeKm: data.initialKm, lastChangeDate: today },
+      { id: `p-new-3-${Date.now()}`, name: 'Neumáticos Delanteros', category: 'neumáticos', lifeKm: 40000, lifeMonths: 48, lastChangeKm: data.initialKm, lastChangeDate: today },
+      { id: `p-new-4-${Date.now()}`, name: 'Amortiguadores Traseros', category: 'suspensión', lifeKm: 60000, lifeMonths: 48, lastChangeKm: data.initialKm, lastChangeDate: today },
+      { id: `p-new-5-${Date.now()}`, name: 'Batería 12V', category: 'eléctrico', lifeKm: 50000, lifeMonths: 36, lastChangeKm: data.initialKm, lastChangeDate: today },
     ];
 
     const newVehicle: Vehicle = {
@@ -77,7 +86,7 @@ export const VehicleForm: React.FC<VehicleFormProps> = ({
       plate: data.plate,
       vin: data.vin,
       initialKm: data.initialKm,
-      currentKm: data.currentKm,
+      currentKm: data.initialKm,
       pieces: defaultPieces
     };
 
@@ -206,11 +215,11 @@ export const VehicleForm: React.FC<VehicleFormProps> = ({
             </div>
           </div>
 
-          {/* Kilometraje Inicial y Actual */}
+          {/* Kilometraje de Registro */}
           <div className="row g-3">
-            <div className="col-md-6">
+            <div className="col-md-12">
               <div className={styles.formGroup}>
-                <label className={styles.inputLabel}>Kilometraje Inicial (Registro):</label>
+                <label className={styles.inputLabel}>Kilometraje de Registro:</label>
                 <div className={styles.inputWrapper}>
                   <FaRoad className={styles.inputIcon} />
                   <input 
@@ -222,23 +231,6 @@ export const VehicleForm: React.FC<VehicleFormProps> = ({
                   <span className={styles.inputUnit}>km</span>
                 </div>
                 {errors.initialKm && <span className={styles.errorMessage}>{errors.initialKm.message}</span>}
-              </div>
-            </div>
-
-            <div className="col-md-6">
-              <div className={styles.formGroup}>
-                <label className={styles.inputLabel}>Kilometraje Actual (Odómetro):</label>
-                <div className={styles.inputWrapper}>
-                  <FaRoad className={styles.inputIcon} />
-                  <input 
-                    type="number" 
-                    placeholder="Ej. 45000" 
-                    className={`${styles.textInput} ${errors.currentKm ? styles.inputError : ''}`}
-                    {...register("currentKm")}
-                  />
-                  <span className={styles.inputUnit}>km</span>
-                </div>
-                {errors.currentKm && <span className={styles.errorMessage}>{errors.currentKm.message}</span>}
               </div>
             </div>
           </div>

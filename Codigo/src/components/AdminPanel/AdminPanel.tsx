@@ -31,8 +31,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     if (localUsers) return JSON.parse(localUsers);
     
     return [
-      { name: "Admin General", email: "admin@car.com", role: "admin" },
-      { name: "Juan Conductor", email: "conductor@car.com", role: "user" }
+      { name: "Admin General", email: "admin@car.com", role: "admin" }
     ];
   }, []);
 
@@ -41,11 +40,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     const history = localStorage.getItem('maintenance_history');
     if (history) return JSON.parse(history);
 
-    return [
-      { id: "m1", vehicleId: "v1", vehicleName: "Toyota Corolla 2020", pieceId: "p1", pieceName: "Pastillas de Freno Delanteras", type: "Preventivo", date: "2024-05-10", km: 18000, cost: 75.0, provider: "Frenos Express" },
-      { id: "m2", vehicleId: "v1", vehicleName: "Toyota Corolla 2020", pieceId: "p3", pieceName: "Aceite Sintético 5W-30", type: "Preventivo", date: "2025-11-20", km: 42000, cost: 45.0, provider: "Lubricentro Central" },
-      { id: "m3", vehicleId: "v2", vehicleName: "Mazda 3 Sport 2018", pieceId: "p21", pieceName: "Discos de Freno Delanteros", type: "Correctivo", date: "2021-08-20", km: 50000, cost: 180.0, provider: "Frenos Del Pacífico" }
-    ];
+    return [];
   }, [vehicles]);
 
   // KPI: Inversión Total Acumulada

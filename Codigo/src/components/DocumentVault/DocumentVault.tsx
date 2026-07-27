@@ -77,7 +77,7 @@ export const DocumentVault: React.FC<DocumentVaultProps> = ({
           <FaLock />
         </div>
         <h2>Bóveda de Documentos</h2>
-        <p className={styles.subtitle}>Vehículo Activo: <strong>{vehicleName}</strong></p>
+        <p className={styles.subtitle}>Vehículo Seleccionado: <strong>{vehicleName}</strong></p>
         <p className="text-muted small mt-1">
           🔒 Todos tus documentos se encriptan y guardan de manera 100% local en tu navegador.
         </p>

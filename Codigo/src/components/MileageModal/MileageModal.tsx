@@ -44,7 +44,7 @@ export const MileageModal: React.FC<MileageModalProps> = ({
     reset
   } = useForm<MileageFormValues>({
     resolver: zodResolver(mileageSchema),
-    mode: "onBlur",
+    mode: "onChange",
     defaultValues: {
       mileage: currentKm
     }
@@ -59,7 +59,7 @@ export const MileageModal: React.FC<MileageModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className={styles.modalOverlay} onClick={onClose}>
+    <div className={styles.modalOverlay}>
       <motion.div 
         className={styles.modalContainer}
         onClick={(e) => e.stopPropagation()}
