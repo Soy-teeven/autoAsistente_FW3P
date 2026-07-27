@@ -12,48 +12,94 @@ import { User, Vehicle, Piece } from './types';
 import { FaWrench, FaPlusCircle, FaUser, FaShieldAlt, FaSun, FaMoon, FaBars, FaCar } from 'react-icons/fa';
 import { motion, AnimatePresence } from 'framer-motion';
 
+const readStoredJSON = <T,>(key: string, fallback: T): T => {
+  try {
+    const rawValue = localStorage.getItem(key);
+    if (rawValue === null) {
+      return fallback;
+    }
+    return JSON.parse(rawValue) as T;
+  } catch {
+    return fallback;
+  }
+};
+
+const normalizeStoredUser = (value: unknown): User | null => {
+  if (!value || typeof value !== 'object') {
+    return null;
+  }
+
+  const candidate = value as Partial<User>;
+  const name = typeof candidate.name === 'string' ? candidate.name.trim() : '';
+  const email = typeof candidate.email === 'string' ? candidate.email.trim().toLowerCase() : '';
+
+  if (!name || !email) {
+    return null;
+  }
+
+  return {
+    id: typeof candidate.id === 'string' && candidate.id ? candidate.id : `u-${Date.now()}`,
+    name,
+    email,
+    password: typeof candidate.password === 'string' ? candidate.password : '',
+    role: candidate.role === 'admin' ? 'admin' : 'user',
+    avatar: typeof candidate.avatar === 'string' ? candidate.avatar : '',
+  };
+};
+
+const normalizeStoredVehicles = (value: unknown, fallback: Vehicle[]): Vehicle[] => {
+  if (!Array.isArray(value)) {
+    return fallback;
+  }
+
+  return value
+    .filter((item): item is Partial<Vehicle> => Boolean(item) && typeof item === 'object')
+    .map((item, index) => {
+      const candidate = item as Partial<Vehicle>;
+      return {
+        id: typeof candidate.id === 'string' && candidate.id ? candidate.id : `v-${Date.now()}-${index}`,
+        userId: typeof candidate.userId === 'string' && candidate.userId ? candidate.userId : 'unknown-user',
+        name: typeof candidate.name === 'string' && candidate.name.trim() ? candidate.name.trim() : 'Mi Vehículo',
+        brand: typeof candidate.brand === 'string' && candidate.brand.trim() ? candidate.brand.trim() : 'Marca',
+        model: typeof candidate.model === 'string' && candidate.model.trim() ? candidate.model.trim() : 'Modelo',
+        year: Number.isInteger(candidate.year) ? candidate.year! : new Date().getFullYear(),
+        plate: typeof candidate.plate === 'string' ? candidate.plate.trim().toUpperCase() : 'ABC-1234',
+        vin: typeof candidate.vin === 'string' ? candidate.vin.trim().toUpperCase() : `1HGCR2F83HA${Math.floor(100000 + Math.random() * 900000)}`,
+        initialKm: Number.isFinite(candidate.initialKm) && candidate.initialKm! >= 0 ? candidate.initialKm! : 0,
+        currentKm: Number.isFinite(candidate.currentKm) && candidate.currentKm! >= 0 ? candidate.currentKm! : 0,
+        pieces: Array.isArray(candidate.pieces)
+          ? candidate.pieces.filter((piece): piece is Partial<Piece> => Boolean(piece) && typeof piece === 'object').map((piece, pieceIndex) => ({
+              id: typeof piece.id === 'string' && piece.id ? piece.id : `p-${Date.now()}-${pieceIndex}`,
+              name: typeof piece.name === 'string' && piece.name.trim() ? piece.name.trim() : 'Pieza',
+              category: (piece.category as Piece['category']) || 'motor',
+              lifeKm: Number.isFinite(piece.lifeKm) && piece.lifeKm! >= 0 ? piece.lifeKm! : 0,
+              lifeMonths: Number.isFinite(piece.lifeMonths) && piece.lifeMonths! >= 0 ? piece.lifeMonths! : 0,
+              lastChangeKm: Number.isFinite(piece.lastChangeKm) && piece.lastChangeKm! >= 0 ? piece.lastChangeKm! : 0,
+              lastChangeDate: typeof piece.lastChangeDate === 'string' ? piece.lastChangeDate : new Date().toISOString().split('T')[0],
+            }))
+          : [],
+      };
+    });
+};
+
 function App() {
   // --- Estados de Sesión (RF01 / RF02) ---
   const [currentUser, setCurrentUser] = useState<User | null>(() => {
-    const savedUser = localStorage.getItem('logged_user');
-    return savedUser ? JSON.parse(savedUser) : null;
+    return normalizeStoredUser(readStoredJSON('logged_user', null));
   });
 
   // --- Estados de Negocio y UI ---
   const [vehicles, setVehicles] = useState<Vehicle[]>(() => {
-    const localVehicles = localStorage.getItem('user_vehicles');
-    if (localVehicles) {
-      try {
-        const parsed = JSON.parse(localVehicles);
-        return parsed.map((v: any) => {
-          // Si el vehículo guardado en el navegador es antiguo y le faltan propiedades del RF04, las auto-completamos
-          if (!v.brand || !v.vin) {
-            const nameParts = (v.name || 'Toyota Corolla 2020').split(' ');
-            return {
-              id: v.id || `v-${Date.now()}`,
-              userId: v.userId || 'u-user-1',
-              name: v.name || 'Mi Vehículo',
-              brand: v.brand || nameParts[0] || 'Toyota',
-              model: v.model || nameParts[1] || 'Corolla',
-              year: v.year || parseInt(nameParts[2]) || 2020,
-              plate: v.plate || 'ABC-1234',
-              vin: v.vin || '1HGCR2F83HA' + Math.floor(100000 + Math.random() * 900000),
-              initialKm: v.initialKm || 0,
-              currentKm: v.currentKm || 0,
-              pieces: v.pieces || []
-            };
-          }
-          return v;
-        });
-      } catch (e) {
-        return MOCK_VEHICLES;
-      }
-    }
-    return MOCK_VEHICLES;
+    return normalizeStoredVehicles(readStoredJSON('user_vehicles', null), MOCK_VEHICLES);
   });
 
   const [activeVehicleId, setActiveVehicleId] = useState<string>(() => {
-    return localStorage.getItem('active_vehicle_id') || MOCK_VEHICLES[0].id;
+    const savedActiveVehicleId = localStorage.getItem('active_vehicle_id');
+    const initialVehicles = normalizeStoredVehicles(readStoredJSON('user_vehicles', null), MOCK_VEHICLES);
+    if (savedActiveVehicleId && initialVehicles.some(v => v.id === savedActiveVehicleId)) {
+      return savedActiveVehicleId;
+    }
+    return initialVehicles[0]?.id || MOCK_VEHICLES[0].id;
   });
 
   const [activeCategory, setActiveCategory] = useState<string>('todas');
@@ -94,6 +140,12 @@ function App() {
     document.documentElement.setAttribute('data-theme', theme);
   }, [theme]);
 
+  useEffect(() => {
+    if (vehicles.length > 0 && !vehicles.some(v => v.id === activeVehicleId)) {
+      setActiveVehicleId(vehicles[0].id);
+    }
+  }, [activeVehicleId, vehicles]);
+
   const handleLoginSuccess = (user: User) => {
     setCurrentUser(user);
     localStorage.setItem('logged_user', JSON.stringify(user));
@@ -109,6 +161,15 @@ function App() {
   }, [vehicles, activeVehicleId]);
 
   const handleUpdateKm = (newKm: number) => {
+    if (!Number.isFinite(newKm) || newKm < 0) {
+      return;
+    }
+
+    const currentVehicle = vehicles.find(v => v.id === activeVehicleId);
+    if (!currentVehicle || newKm < currentVehicle.currentKm) {
+      return;
+    }
+
     setVehicles(prevVehicles => 
       prevVehicles.map(v => 
         v.id === activeVehicleId 
@@ -119,8 +180,19 @@ function App() {
   };
 
   const handleAddVehicle = (newVehicle: Vehicle) => {
-    setVehicles(prev => [...prev, newVehicle]);
-    setActiveVehicleId(newVehicle.id);
+    const normalizedVehicle: Vehicle = {
+      ...newVehicle,
+      plate: newVehicle.plate.trim().toUpperCase(),
+      vin: newVehicle.vin.trim().toUpperCase(),
+      currentKm: Math.max(newVehicle.currentKm, newVehicle.initialKm),
+    };
+
+    if (vehicles.some(v => v.plate.toUpperCase() === normalizedVehicle.plate || v.vin.toUpperCase() === normalizedVehicle.vin)) {
+      return;
+    }
+
+    setVehicles(prev => [...prev, normalizedVehicle]);
+    setActiveVehicleId(normalizedVehicle.id);
   };
 
   const handleUpdatePiece = (updatedPiece: Piece) => {
@@ -145,6 +217,19 @@ function App() {
     provider: string,
     type: 'Preventivo' | 'Correctivo'
   ) => {
+    if (!activeVehicle || !pieceId || !lastChangeDate.trim()) {
+      return;
+    }
+
+    if (!Number.isFinite(lastChangeKm) || lastChangeKm < 0 || !Number.isFinite(cost) || cost <= 0 || !provider.trim()) {
+      return;
+    }
+
+    const selectedPiece = activeVehicle.pieces.find(p => p.id === pieceId);
+    if (!selectedPiece) {
+      return;
+    }
+
     setVehicles(prevVehicles => 
       prevVehicles.map(v => {
         if (v.id === activeVehicleId) {
@@ -161,21 +246,25 @@ function App() {
       })
     );
 
-    const history = JSON.parse(localStorage.getItem('maintenance_history') || '[]');
-    const newRecord = {
-      id: `m-hist-${Date.now()}`,
-      vehicleId: activeVehicle.id,
-      vehicleName: activeVehicle.name,
-      pieceId,
-      pieceName: activeVehicle.pieces.find(p => p.id === pieceId)?.name || 'Pieza',
-      type,
-      date: lastChangeDate,
-      km: lastChangeKm,
-      cost,
-      provider
-    };
-    history.push(newRecord);
-    localStorage.setItem('maintenance_history', JSON.stringify(history));
+    try {
+      const history = readStoredJSON('maintenance_history', [] as Array<Record<string, unknown>>);
+      const newRecord = {
+        id: `m-hist-${Date.now()}`,
+        vehicleId: activeVehicle.id,
+        vehicleName: activeVehicle.name,
+        pieceId,
+        pieceName: selectedPiece.name,
+        type,
+        date: lastChangeDate,
+        km: lastChangeKm,
+        cost,
+        provider,
+      };
+      history.push(newRecord);
+      localStorage.setItem('maintenance_history', JSON.stringify(history));
+    } catch {
+      // Ignorar si el historial no se puede persistir
+    }
 
     setReadNotificationIds(prev => [...prev, pieceId]);
   };
@@ -376,9 +465,14 @@ function App() {
                   const updated = { ...currentUser, role: newRole };
                   setCurrentUser(updated);
                   localStorage.setItem('logged_user', JSON.stringify(updated));
-                  const db = JSON.parse(localStorage.getItem('users_database') || '[]');
-                  const sync = db.map((u: User) => u.email === currentUser.email ? { ...u, role: newRole } : u);
-                  localStorage.setItem('users_database', JSON.stringify(sync));
+
+                  try {
+                    const db = readStoredJSON('users_database', [] as User[]);
+                    const sync = db.map((u: User) => u.email === currentUser.email ? { ...u, role: newRole } : u);
+                    localStorage.setItem('users_database', JSON.stringify(sync));
+                  } catch {
+                    // Ignorar si no se puede actualizar la base de usuarios
+                  }
                 }}
                 activeVehicleId={activeVehicleId}
                 setActiveVehicleId={setActiveVehicleId}
