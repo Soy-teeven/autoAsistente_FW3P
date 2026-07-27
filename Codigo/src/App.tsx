@@ -46,29 +46,13 @@ function App() {
           return v;
         });
       } catch (e) {
-        
+        return MOCK_VEHICLES;
       }
     }
     return MOCK_VEHICLES;
   });
 
-  const [activeVehicleId, setActiveVehicleId] = useState<string>(() => {
-    return localStorage.getItem('active_vehicle_id') || MOCK_VEHICLES[0].id;
-  });
-
-  const [activeCategory, setActiveCategory] = useState<string>('todas');
-  const [activeSection, setActiveSection] = useState<'dashboard' | 'new-vehicle' | 'profile' | 'admin'>('dashboard');
-  const [isMenuExpanded, setIsMenuExpanded] = useState(false);
-
-  // Modales
-  const [isMileageModalOpen, setIsMileageModalOpen] = useState(false);
-  const [selectedPieceForMaint, setSelectedPieceForMaint] = useState<Piece | null>(null);
-
-  // Historial de alertas marcadas como leídas
-  const [readNotificationIds, setReadNotificationIds] = useState<string[]>(() => {
-    const saved = localStorage.getItem('read_notifications');
-    return saved ? JSON.parse(saved) : [];
-  });
+  
 
   const [highlightedPieceId, setHighlightedPieceId] = useState<string | null>(null);
 
