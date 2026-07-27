@@ -1,6 +1,7 @@
 import bcrypt from 'bcryptjs';
 import { User, Vehicle } from '../types';
 
+// Claves para el almacenamiento local (localStorage)
 const STORAGE_KEYS = {
   USERS: 'app_users_db',
   CURRENT_USER: 'logged_user',
@@ -9,6 +10,7 @@ const STORAGE_KEYS = {
   THEME: 'visual_theme',
 };
 
+// Funciones auxiliares para leer y escribir en localStorage
 const getFromStorage = <T>(key: string, defaultValue: T): T => {
   try {
     const data = localStorage.getItem(key);
@@ -23,16 +25,16 @@ const saveToStorage = <T>(key: string, data: T): void => {
 };
 
 export const storageService = {
-  // --- USUARIOS & AUTENTICACIÓN (RF01, RF02, RNF01) ---
+  // --- MÓDULO DE AUTENTICACIÓN Y USUARIOS ---
+
+  // Registra un nuevo usuario encriptando su contraseña
   registerUser: async (name: string, email: string, password: string, avatar?: string): Promise<User> => {
     const users = getFromStorage<User[]>(STORAGE_KEYS.USERS, []);
     
-    // Validación de unicidad de correo (RF01)
     if (users.some(u => u.email.toLowerCase() === email.toLowerCase())) {
       throw new Error('El correo electrónico ya se encuentra registrado');
     }
 
-    // Cifrado de contraseña obligatorio con bcryptjs (RNF01 / RF01)
     const salt = await bcrypt.genSalt(10);
     const passwordHash = await bcrypt.hash(password, salt);
 
@@ -51,6 +53,7 @@ export const storageService = {
     return newUser;
   },
 
+  // Valida las credenciales e inicia sesión
   loginUser: async (email: string, password: string): Promise<User> => {
     const users = getFromStorage<User[]>(STORAGE_KEYS.USERS, []);
     const user = users.find(u => u.email.toLowerCase() === email.toLowerCase());
@@ -59,7 +62,6 @@ export const storageService = {
       throw new Error('Credenciales inválidas');
     }
 
-    // Validación de credenciales cifradas (RF02)
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
       throw new Error('Credenciales inválidas');
@@ -69,23 +71,29 @@ export const storageService = {
     return user;
   },
 
+  // Retorna la sesión del usuario actual
   getCurrentUser: (): User | null => {
     return getFromStorage<User | null>(STORAGE_KEYS.CURRENT_USER, null);
   },
 
+  // Cierra la sesión activa
   logout: (): void => {
     localStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
   },
 
-  // --- PERSISTENCIA LOCAL (RNF03) ---
+  // --- MÓDULO DE GESTIÓN DE VEHÍCULOS ---
+
+  // Obtiene los vehículos guardados
   getVehicles: (): Vehicle[] => {
     return getFromStorage<Vehicle[]>(STORAGE_KEYS.VEHICLES, []);
   },
 
+  // Guarda la lista completa de vehículos
   saveVehicles: (vehicles: Vehicle[]): void => {
     saveToStorage(STORAGE_KEYS.VEHICLES, vehicles);
   },
 
+  // Actualiza el kilometraje validando que no sea inferior al registrado
   updateVehicleKm: (vehicleId: string, newKm: number): Vehicle[] => {
     const vehicles = storageService.getVehicles();
     const updated = vehicles.map(v => {
@@ -97,6 +105,7 @@ export const storageService = {
       }
       return v;
     });
+
     storageService.saveVehicles(updated);
     return updated;
   }
