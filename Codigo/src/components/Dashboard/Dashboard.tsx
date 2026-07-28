@@ -9,7 +9,9 @@ import {
   FaInfoCircle, 
   FaSlidersH,
   FaCar,
-  FaChevronUp
+  FaChevronUp,
+  FaPlus,
+  FaTimes
 } from 'react-icons/fa';
 import { 
   GiStopSign,
@@ -42,7 +44,21 @@ export interface DashboardProps {
   highlightedPieceId: string | null;
   setHighlightedPieceId: (id: string | null) => void;
   onNavigateToNewVehicle?: () => void;
+  onAddPieceToVehicle?: (pieces: Piece[]) => void;
+  onRemovePieceFromVehicle?: (pieceId: string) => void;
+  onDeleteVehicle?: (vehicleId: string) => void;
 }
+
+const PREDEFINED_PIECES_BY_CATEGORY: Record<string, Omit<Piece, 'id' | 'lastChangeKm' | 'lastChangeDate'>[]> = {
+  frenos: [{ name: 'Pastillas de Freno', category: 'frenos', lifeKm: 30000, lifeMonths: 24 }, { name: 'Discos de Freno', category: 'frenos', lifeKm: 60000, lifeMonths: 48 }],
+  suspensión: [{ name: 'Amortiguadores', category: 'suspensión', lifeKm: 60000, lifeMonths: 48 }],
+  motor: [{ name: 'Aceite de Motor', category: 'motor', lifeKm: 10000, lifeMonths: 12 }, { name: 'Filtro de Aceite', category: 'motor', lifeKm: 10000, lifeMonths: 12 }],
+  transmisión: [{ name: 'Líquido de Transmisión', category: 'transmisión', lifeKm: 80000, lifeMonths: 48 }],
+  eléctrico: [{ name: 'Batería 12V', category: 'eléctrico', lifeKm: 50000, lifeMonths: 36 }],
+  neumáticos: [{ name: 'Neumáticos', category: 'neumáticos', lifeKm: 40000, lifeMonths: 48 }],
+  enfriamiento: [{ name: 'Líquido Refrigerante', category: 'enfriamiento', lifeKm: 40000, lifeMonths: 24 }],
+  dirección: [{ name: 'Líquido de Dirección', category: 'dirección', lifeKm: 50000, lifeMonths: 48 }],
+};
 
 export const Dashboard: React.FC<DashboardProps> = ({
   activeVehicleId,
@@ -55,10 +71,14 @@ export const Dashboard: React.FC<DashboardProps> = ({
   onUpdatePiece,
   highlightedPieceId,
   setHighlightedPieceId,
-  onNavigateToNewVehicle
+  onNavigateToNewVehicle,
+  onAddPieceToVehicle,
+  onRemovePieceFromVehicle,
+  onDeleteVehicle
 }) => {
   const [editingPiece, setEditingPiece] = useState<Piece | null>(null);
   const [expandedCardId, setExpandedCardId] = useState<string | null>(null);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [prevIndex, setPrevIndex] = useState(0);
   const [direction, setDirection] = useState(1);
 
@@ -108,17 +128,24 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
   // RF08 & RNF02: Motor de Cálculo de desgaste dinámico (Protegido contra NaN / división por cero)
   const calculatePieceWear = (piece: Piece, currentKm: number) => {
-    const safeCurrentKm = Number.isFinite(currentKm) && currentKm >= 0 ? currentKm : 0;
-    const safeLastChangeKm = Number.isFinite(piece.lastChangeKm) && piece.lastChangeKm >= 0 ? piece.lastChangeKm : 0;
-    const safeLifeKm = (Number.isFinite(piece.lifeKm) && piece.lifeKm > 0) ? piece.lifeKm : 10000;
-    const safeLifeMonths = (Number.isFinite(piece.lifeMonths) && piece.lifeMonths > 0) ? piece.lifeMonths : 12;
+    const parsedCurrentKm = Number(currentKm);
+    const safeCurrentKm = !Number.isNaN(parsedCurrentKm) && parsedCurrentKm >= 0 ? parsedCurrentKm : 0;
+    
+    const parsedLastChangeKm = Number(piece.lastChangeKm);
+    const safeLastChangeKm = !Number.isNaN(parsedLastChangeKm) && parsedLastChangeKm >= 0 ? parsedLastChangeKm : 0;
+    
+    const parsedLifeKm = Number(piece.lifeKm);
+    const safeLifeKm = (!Number.isNaN(parsedLifeKm) && parsedLifeKm > 0) ? parsedLifeKm : 10000;
+    
+    const parsedLifeMonths = Number(piece.lifeMonths);
+    const safeLifeMonths = (!Number.isNaN(parsedLifeMonths) && parsedLifeMonths > 0) ? parsedLifeMonths : 12;
 
     const kmDrivenSinceChange = Math.max(0, safeCurrentKm - safeLastChangeKm);
     const wearKmRatio = safeLifeKm > 0 ? kmDrivenSinceChange / safeLifeKm : 0;
 
     let monthsElapsed = 0;
     try {
-      const lastChangeDateObj = new Date(piece.lastChangeDate);
+      const lastChangeDateObj = new Date(piece.lastChangeDate + 'T12:00:00');
       if (!Number.isNaN(lastChangeDateObj.getTime())) {
         const currentDateObj = new Date();
         monthsElapsed = (currentDateObj.getFullYear() - lastChangeDateObj.getFullYear()) * 12
@@ -247,8 +274,19 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
       {/* Detalles técnicos del vehículo activo */}
       <div className="alert alert-info py-2 px-3 mb-4 d-flex justify-content-between align-items-center flex-wrap gap-2" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }}>
-        <span><FaCar className="me-2 text-primary" /> <strong>{selectedVehicle.brand || 'Toyota'} {selectedVehicle.model || 'Corolla'} ({selectedVehicle.year || 2020})</strong> | Placa: <code>{selectedVehicle.plate}</code> | VIN: <code>{selectedVehicle.vin || '1HGCR2F83HA123456'}</code></span>
-        <span>Odómetro: <strong>{Number.isFinite(selectedVehicle.currentKm) ? selectedVehicle.currentKm.toLocaleString() : 0} km</strong> (Inicial: {Number.isFinite(selectedVehicle.initialKm) ? selectedVehicle.initialKm : 0} km)</span>
+        <span><FaCar className="me-2 text-primary" /> <strong>{selectedVehicle.brand || 'Toyota'} {selectedVehicle.model || 'Corolla'} ({selectedVehicle.year || 2020})</strong> | Placa: <code>{selectedVehicle.plate}</code> | VIN: <code>{selectedVehicle.vin || 'N/A'}</code></span>
+        <div className="d-flex align-items-center gap-3">
+          <span>Odómetro: <strong>{Number.isFinite(selectedVehicle.currentKm) ? selectedVehicle.currentKm.toLocaleString() : 0} km</strong> (Inicial: {Number.isFinite(selectedVehicle.initialKm) ? selectedVehicle.initialKm : 0} km)</span>
+          {onDeleteVehicle && (
+            <button 
+              className="btn btn-sm btn-outline-danger" 
+              onClick={() => onDeleteVehicle(selectedVehicle.id)}
+              title="Eliminar Vehículo"
+            >
+              <FaTimes />
+            </button>
+          )}
+        </div>
       </div>
 
       <nav className={styles.tabsContainer} aria-label="Categorías de Piezas">
@@ -268,182 +306,235 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
       <main>
         <AnimatePresence mode="wait" initial={false}>
-          {sortedAndFilteredPieces.length > 0 ? (
-            <motion.div 
-              key={`${activeVehicleId}-${activeCategory}`}
-              custom={direction}
-              variants={slideVariants}
-              initial="enter"
-              animate="center"
-              exit="exit"
-              transition={{
-                x: { type: "spring", stiffness: 260, damping: 26 },
-                opacity: { duration: 0.2 }
-              }}
-              className={styles.cardsGrid}
-            >
-              {sortedAndFilteredPieces.map(({ piece, wearInfo }) => {
-                const { wearPercentage, status, statusLabel, kmDrivenSinceChange } = wearInfo;
-                
-                const urgencyClass = 
-                  status === 'red' ? styles.urgencyRed : 
-                  status === 'yellow' ? styles.urgencyYellow : 
-                  styles.urgencyGreen;
+          <motion.div 
+            key={`${activeVehicleId}-${activeCategory}`}
+            custom={direction}
+            variants={slideVariants}
+            initial="enter"
+            animate="center"
+            exit="exit"
+            transition={{
+              x: { type: "spring", stiffness: 260, damping: 26 },
+              opacity: { duration: 0.2 }
+            }}
+            className={styles.cardsGrid}
+          >
+            {sortedAndFilteredPieces.map(({ piece, wearInfo }) => {
+              const { wearPercentage, status, statusLabel, kmDrivenSinceChange } = wearInfo;
+              
+              const urgencyClass = 
+                status === 'red' ? styles.urgencyRed : 
+                status === 'yellow' ? styles.urgencyYellow : 
+                styles.urgencyGreen;
 
-                const progressColorClass = 
-                  status === 'red' ? styles.progressRed : 
-                  status === 'yellow' ? styles.progressYellow : 
-                  styles.progressGreen;
+              const progressColorClass = 
+                status === 'red' ? styles.progressRed : 
+                status === 'yellow' ? styles.progressYellow : 
+                styles.progressGreen;
 
-                const isExpanded = piece.id === expandedCardId || piece.id === highlightedPieceId;
+              const isExpanded = piece.id === expandedCardId || piece.id === highlightedPieceId;
 
-                return (
-                  <div key={piece.id} className={styles.pieceCardWrapper}>
-                    <article 
-                      id={piece.id}
-                      className={`${styles.pieceCard} ${status === 'red' ? styles.urgentPulse : ''} ${piece.id === highlightedPieceId ? styles.highlightedCard : ''} ${isExpanded ? styles.cardExpanded : ''}`}
-                      style={{ position: 'relative' }}
-                      onClick={() => {
-                        if (piece.id === highlightedPieceId) {
-                          setHighlightedPieceId(null);
-                        }
-                        setExpandedCardId(prev => prev === piece.id ? null : piece.id);
-                      }}
-                    >
-                    {/* Front Panel (Always visible when not expanded/hovered) */}
-                    <div className={styles.cardFrontContent}>
-                      <div className={styles.cardHeader}>
-                        <div className={styles.iconTitleGroup}>
-                          <div className={styles.categoryIconWrapper} aria-hidden="true">
-                            {piece.category === 'frenos' && <GiStopSign />}
-                            {piece.category === 'suspensión' && <GiSuspensionBridge />}
-                            {piece.category === 'motor' && <GiGears />}
-                            {piece.category === 'transmisión' && <GiGearStickPattern />}
-                            {piece.category === 'eléctrico' && <GiElectric />}
-                            {piece.category === 'neumáticos' && <GiCarWheel />}
-                            {piece.category === 'enfriamiento' && <GiSnowflake2 />}
-                            {piece.category === 'dirección' && <GiSteeringWheel />}
-                          </div>
-                          <div className={styles.titleArea}>
-                            <h3>{piece.name}</h3>
-                            <span className={styles.categoryBadge}>{piece.category}</span>
-                          </div>
+              return (
+                <div key={piece.id} className={styles.pieceCardWrapper}>
+                  <article 
+                    id={piece.id}
+                    className={`${styles.pieceCard} ${status === 'red' ? styles.urgentPulse : ''} ${piece.id === highlightedPieceId ? styles.highlightedCard : ''} ${isExpanded ? styles.cardExpanded : ''}`}
+                    style={{ position: 'relative' }}
+                    onClick={() => {
+                      if (piece.id === highlightedPieceId) {
+                        setHighlightedPieceId(null);
+                      }
+                      setExpandedCardId(prev => prev === piece.id ? null : piece.id);
+                    }}
+                  >
+                  {/* Front Panel (Always visible when not expanded/hovered) */}
+                  <div className={styles.cardFrontContent}>
+                    <div className={styles.cardHeader}>
+                      <div className={styles.iconTitleGroup}>
+                        <div className={styles.categoryIconWrapper} aria-hidden="true">
+                          {piece.category === 'frenos' && <GiStopSign />}
+                          {piece.category === 'suspensión' && <GiSuspensionBridge />}
+                          {piece.category === 'motor' && <GiGears />}
+                          {piece.category === 'transmisión' && <GiGearStickPattern />}
+                          {piece.category === 'eléctrico' && <GiElectric />}
+                          {piece.category === 'neumáticos' && <GiCarWheel />}
+                          {piece.category === 'enfriamiento' && <GiSnowflake2 />}
+                          {piece.category === 'dirección' && <GiSteeringWheel />}
                         </div>
+                        <div className={styles.titleArea}>
+                          <h3>{piece.name}</h3>
+                          <span className={styles.categoryBadge}>{piece.category}</span>
+                        </div>
+                      </div>
 
-                        {/* RF08: Semáforo Tricolor */}
-                        <span className={`${styles.urgencyBadge} ${urgencyClass}`}>
-                          {status === 'red' && <FaExclamationTriangle className="me-1" />}
-                          {status === 'green' && <FaCheckCircle className="me-1" />}
-                          {statusLabel}
+                      {/* RF08: Semáforo Tricolor */}
+                      <span className={`${styles.urgencyBadge} ${urgencyClass}`}>
+                        {status === 'red' && <FaExclamationTriangle className="me-1" />}
+                        {status === 'green' && <FaCheckCircle className="me-1" />}
+                        {statusLabel}
+                      </span>
+                    </div>
+
+                    <section className={styles.wearSection}>
+                      <div className={styles.wearLabelRow}>
+                        <span>Desgaste Estimado</span>
+                        <span className="fw-bold">{wearPercentage}%</span>
+                      </div>
+                      <div className={styles.progressContainer} aria-valuenow={wearPercentage} aria-valuemin={0} aria-valuemax={100}>
+                        <div 
+                           className={`${styles.progressBar} ${progressColorClass}`}
+                          style={{ width: `${wearPercentage}%` }}
+                        />
+                      </div>
+                    </section>
+
+                    {/* H8 - Visual indicator for expandable details */}
+                    <div className={styles.expandIndicator}>
+                      <span>Ver detalles y acciones</span>
+                      <FaChevronUp />
+                    </div>
+                  </div>
+
+                  {/* Back Panel / Slide-up Drawer (Covering the front content on hover/click) */}
+                  <div className={styles.slideUpPanel}>
+                    <div className={styles.slideUpHeader}>
+                      <h4>{piece.name}</h4>
+                    </div>
+
+                    <section className={styles.detailsGrid}>
+                      <div className={styles.detailItem}>
+                        <span className={styles.detailLabel}>Último Cambio</span>
+                        <span className={styles.detailValue}>
+                          <FaRoad className="me-1 text-muted" /> {piece.lastChangeKm.toLocaleString()} km
                         </span>
                       </div>
-
-                      <section className={styles.wearSection}>
-                        <div className={styles.wearLabelRow}>
-                          <span>Desgaste Estimado</span>
-                          <span className="fw-bold">{wearPercentage}%</span>
-                        </div>
-                        <div className={styles.progressContainer} aria-valuenow={wearPercentage} aria-valuemin={0} aria-valuemax={100}>
-                          <div 
-                             className={`${styles.progressBar} ${progressColorClass}`}
-                            style={{ width: `${wearPercentage}%` }}
-                          />
-                        </div>
-                      </section>
-
-                      {/* H8 - Visual indicator for expandable details */}
-                      <div className={styles.expandIndicator}>
-                        <span>Ver detalles y acciones</span>
-                        <FaChevronUp />
+                      <div className={styles.detailItem}>
+                        <span className={styles.detailLabel}>Fecha Cambio</span>
+                        <span className={styles.detailValue}>
+                          <FaCalendarAlt className="me-1 text-muted" /> {new Date(piece.lastChangeDate + 'T12:00:00').toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' })}
+                        </span>
                       </div>
-                    </div>
-
-                    {/* Back Panel / Slide-up Drawer (Covering the front content on hover/click) */}
-                    <div className={styles.slideUpPanel}>
-                      <div className={styles.slideUpHeader}>
-                        <h4>{piece.name}</h4>
+                      <div className={styles.detailItem}>
+                        <span className={styles.detailLabel}>Uso Transcurrido</span>
+                        <span className={styles.detailValue}>
+                          {kmDrivenSinceChange.toLocaleString()} km
+                        </span>
                       </div>
+                      <div className={styles.detailItem}>
+                        <span className={styles.detailLabel}>Límite Fábrica</span>
+                        <span className={styles.detailValue} title={`Vida esperada: ${piece.lifeKm} km o ${piece.lifeMonths} meses`}>
+                          <FaInfoCircle className="me-1 text-info" /> {piece.lifeKm.toLocaleString()} km
+                        </span>
+                      </div>
+                    </section>
 
-                      <section className={styles.detailsGrid}>
-                        <div className={styles.detailItem}>
-                          <span className={styles.detailLabel}>Último Cambio</span>
-                          <span className={styles.detailValue}>
-                            <FaRoad className="me-1 text-muted" /> {piece.lastChangeKm.toLocaleString()} km
-                          </span>
-                        </div>
-                        <div className={styles.detailItem}>
-                          <span className={styles.detailLabel}>Fecha Cambio</span>
-                          <span className={styles.detailValue}>
-                            <FaCalendarAlt className="me-1 text-muted" /> {new Date(piece.lastChangeDate).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' })}
-                          </span>
-                        </div>
-                        <div className={styles.detailItem}>
-                          <span className={styles.detailLabel}>Uso Transcurrido</span>
-                          <span className={styles.detailValue}>
-                            {kmDrivenSinceChange.toLocaleString()} km
-                          </span>
-                        </div>
-                        <div className={styles.detailItem}>
-                          <span className={styles.detailLabel}>Límite Fábrica</span>
-                          <span className={styles.detailValue} title={`Vida esperada: ${piece.lifeKm} km o ${piece.lifeMonths} meses`}>
-                            <FaInfoCircle className="me-1 text-info" /> {piece.lifeKm.toLocaleString()} km
-                          </span>
-                        </div>
-                      </section>
+                    <div className={styles.cardActions}>
+                      {/* RF09: Registrar Mantenimiento */}
+                      <button 
+                        className="btn-duo-3d btn-duo-primary" 
+                        style={{ flex: 1 }}
+                        title={`Registrar mantenimiento para ${piece.name}`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onOpenMaintenanceModal(piece);
+                        }}
+                      >
+                        <FaWrench className="me-1" />
+                        <span>Mantenimiento</span>
+                      </button>
+                      
+                      {/* RF07: Asignación de desgastes y tolerancias de fábrica */}
+                      <button 
+                        className="btn-duo-3d btn-duo-secondary"
+                        title="Configurar límites de fábrica"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setEditingPiece(piece);
+                        }}
+                      >
+                        <FaSlidersH />
+                      </button>
 
-                      <div className={styles.cardActions}>
-                        {/* RF09: Registrar Mantenimiento */}
-                        <button 
-                          className="btn-duo-3d btn-duo-primary" 
-                          style={{ flex: 1 }}
-                          title={`Registrar mantenimiento para ${piece.name}`}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onOpenMaintenanceModal(piece);
-                          }}
-                        >
-                          <FaWrench className="me-1" />
-                          <span>Mantenimiento</span>
-                        </button>
-                        
-                        {/* RF07: Asignación de desgastes y tolerancias de fábrica */}
+                      {/* Eliminar Pieza */}
+                      {onRemovePieceFromVehicle && (
                         <button 
                           className="btn-duo-3d btn-duo-secondary"
-                          title="Configurar límites de fábrica"
+                          style={{ color: '#dc3545', borderColor: '#dc3545' }}
+                          title="Quitar pieza de este vehículo"
                           onClick={(e) => {
                             e.stopPropagation();
-                            setEditingPiece(piece);
+                            onRemovePieceFromVehicle(piece.id);
                           }}
                         >
-                          <FaSlidersH />
+                          <FaTimes />
                         </button>
-                      </div>
+                      )}
                     </div>
-                  </article>
                   </div>
-                );
-              })}
-            </motion.div>
-          ) : (
-            <motion.div 
-              className={styles.emptyState}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-            >
-              <div className={styles.emptyStateIcon}>
-                <FaInfoCircle />
+                </article>
+                </div>
+              );
+            })}
+
+            {/* Opaque Unadded Predefined Pieces */}
+            {activeCategory !== 'todas' && (
+              <>
+                {(PREDEFINED_PIECES_BY_CATEGORY[activeCategory] || [])
+                  .filter(p => !selectedVehicle.pieces.some(vp => vp.name === p.name))
+                  .map((p, idx) => (
+                    <div 
+                      key={`unadded-${idx}`}
+                      className={`${styles.pieceCardWrapper} cursor-pointer`} 
+                      onClick={() => {
+                        const newPiece: Piece = {
+                          ...p,
+                          id: `p-new-${Date.now()}-${idx}`,
+                          lastChangeKm: selectedVehicle.currentKm,
+                          lastChangeDate: new Date().toISOString().split('T')[0]
+                        };
+                        onAddPieceToVehicle?.([newPiece]);
+                      }}
+                      title={`Añadir ${p.name}`}
+                    >
+                      <article className={`${styles.pieceCard} ${styles.addPieceCard}`}>
+                        <div className={styles.cardFrontContent} style={{ opacity: 0.4 }}>
+                          <div className={styles.cardHeader}>
+                            <div className={styles.iconTitleGroup}>
+                              <div className={styles.categoryIconWrapper} style={{ backgroundColor: 'var(--border-color)', color: 'var(--text-secondary)' }}>
+                                <FaPlus />
+                              </div>
+                              <div className={styles.titleArea}>
+                                <h3>{p.name}</h3>
+                                <span className={styles.categoryBadge}>{activeCategory}</span>
+                              </div>
+                            </div>
+                          </div>
+                          <section className={styles.wearSection}>
+                            <div className={styles.wearLabelRow}>
+                              <span>No registrada. Haz clic para añadir.</span>
+                            </div>
+                          </section>
+                        </div>
+                        <div className={styles.addPieceOverlay}>
+                          <div className={styles.addPieceButton}>
+                            <FaPlus />
+                          </div>
+                        </div>
+                      </article>
+                    </div>
+                ))}
+              </>
+            )}
+
+            {/* Empty State when no pieces exist at all */}
+            {activeCategory === 'todas' && sortedAndFilteredPieces.length === 0 && (
+              <div className={styles.emptyState} style={{ gridColumn: '1 / -1' }}>
+                <div className={styles.emptyStateIcon}><FaInfoCircle /></div>
+                <h4>No hay piezas registradas</h4>
+                <p>Selecciona una categoría específica para añadir piezas preconfiguradas.</p>
               </div>
-              <h4>No se encontraron piezas</h4>
-              <p>No existen componentes en la categoría "{activeCategory}".</p>
-              <button 
-                className="btn-duo-3d btn-duo-primary"
-                onClick={() => setActiveCategory('todas')}
-              >
-                Ver Todas las Piezas
-              </button>
-            </motion.div>
-          )}
+            )}
+          </motion.div>
         </AnimatePresence>
       </main>
 
@@ -456,6 +547,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
           onUpdatePiece={onUpdatePiece}
         />
       )}
+
+
     </div>
   );
 };

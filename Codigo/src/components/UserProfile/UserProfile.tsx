@@ -80,8 +80,15 @@ export const UserProfile: React.FC<UserProfileProps> = ({
           <div className={styles.infoRow}>
             <FaEnvelope className={styles.infoIcon} />
             <div className={styles.infoContent}>
-              <span className={styles.infoLabel}>Correo Registrado</span>
-              <span className={styles.infoValue}>{user.email}</span>
+              <span className={styles.infoLabel}>CORREO REGISTRADO</span>
+              <input 
+                type="text" 
+                value={user.email} 
+                className={styles.staticInput} 
+                readOnly 
+                disabled 
+                title="El correo no puede ser modificado por ahora"
+              />
             </div>
           </div>
         </section>

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -22,17 +22,18 @@ const createVehicleSchema = (existingVehicles: Vehicle[]) => z.object({
     .min(1885, { message: "Año inválido (mínimo 1885)" })
     .max(new Date().getFullYear() + 1, { message: "Año no puede ser futuro" }),
   plate: z.string().trim()
-    .min(6, { message: "La placa debe tener al menos 6 caracteres" })
     .max(10, { message: "La placa no debe exceder 10 caracteres" })
-    .regex(/^[a-zA-Z]{3}[-\s]?[0-9]{3,4}$/, { message: "La placa debe tener el formato ecuatoriano válido (Ej: ABC-1234 o ABC-123)" })
+    .regex(/^[a-zA-Z]{3}[0-9]{3,4}$/, { message: "La placa debe tener el formato ecuatoriano válido (Ej: ABC1234 o ABC123)" })
     .toUpperCase()
     .refine((value) => !existingVehicles.some(v => v.plate.toUpperCase() === value.toUpperCase()), {
       message: "Esta placa ya está registrada en otro vehículo"
     }),
   vin: z.string().trim()
-    .regex(/^(?=.*[a-zA-Z])(?=.*[0-9])[a-zA-Z0-9]{17}$/, { message: "El VIN debe ser alfanumérico (letras y números) y tener exactamente 17 caracteres" })
     .toUpperCase()
-    .refine((value) => !existingVehicles.some(v => v.vin.toUpperCase() === value.toUpperCase()), {
+    .refine(value => value === '' || /^(?=.*[a-zA-Z])(?=.*[0-9])[a-zA-Z0-9]{17}$/.test(value), {
+      message: "El VIN debe ser alfanumérico (letras y números) y tener exactamente 17 caracteres"
+    })
+    .refine((value) => value === '' || !existingVehicles.some(v => v.vin && v.vin.toUpperCase() === value.toUpperCase()), {
       message: "Este VIN ya está registrado en otro vehículo"
     }),
   initialKm: z.coerce.number({ invalid_type_error: "Debe ser un número" })
@@ -77,29 +78,18 @@ export const VehicleForm: React.FC<VehicleFormProps> = ({
   });
 
   const onSubmit = (data: VehicleFormValues) => {
-    const today = new Date().toISOString().split('T')[0];
-
-    // Piezas iniciales estándar asignadas con límites de fábrica
-    const defaultPieces: Piece[] = [
-      { id: `p-new-1-${Date.now()}`, name: 'Pastillas de Freno Delanteras', category: 'frenos', lifeKm: 30000, lifeMonths: 24, lastChangeKm: data.initialKm, lastChangeDate: today },
-      { id: `p-new-2-${Date.now()}`, name: 'Aceite de Motor Sintético', category: 'motor', lifeKm: 10000, lifeMonths: 12, lastChangeKm: data.initialKm, lastChangeDate: today },
-      { id: `p-new-3-${Date.now()}`, name: 'Neumáticos Delanteros', category: 'neumáticos', lifeKm: 40000, lifeMonths: 48, lastChangeKm: data.initialKm, lastChangeDate: today },
-      { id: `p-new-4-${Date.now()}`, name: 'Amortiguadores Traseros', category: 'suspensión', lifeKm: 60000, lifeMonths: 48, lastChangeKm: data.initialKm, lastChangeDate: today },
-      { id: `p-new-5-${Date.now()}`, name: 'Batería 12V', category: 'eléctrico', lifeKm: 50000, lifeMonths: 36, lastChangeKm: data.initialKm, lastChangeDate: today },
-    ];
-
     const newVehicle: Vehicle = {
       id: `v-${Date.now()}`,
       userId,
-      name: data.name,
-      brand: data.brand,
-      model: data.model,
+      name: data.name.toUpperCase(),
+      brand: data.brand.toUpperCase(),
+      model: data.model.toUpperCase(),
       year: data.year,
-      plate: data.plate,
-      vin: data.vin,
+      plate: data.plate.toUpperCase(),
+      vin: data.vin.toUpperCase(),
       initialKm: data.initialKm,
       currentKm: data.initialKm,
-      pieces: defaultPieces
+      pieces: []
     };
 
     onAddVehicle(newVehicle);
@@ -198,9 +188,12 @@ export const VehicleForm: React.FC<VehicleFormProps> = ({
                   <FaIdCard className={styles.inputIcon} />
                   <input 
                     type="text" 
-                    placeholder="ABC-1234" 
+                    placeholder="ABC1234" 
                     className={`${styles.textInput} ${errors.plate ? styles.inputError : ''}`}
                     {...register("plate")}
+                    onInput={(e) => {
+                      e.currentTarget.value = e.currentTarget.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+                    }}
                   />
                 </div>
                 {errors.plate && <span className={styles.errorMessage}>{errors.plate.message}</span>}
@@ -210,7 +203,7 @@ export const VehicleForm: React.FC<VehicleFormProps> = ({
             <div className="col-md-4">
               <div className={styles.formGroup}>
                 <label className={styles.inputLabel} title="Número de Chasis de 17 Caracteres">
-                  VIN (17 Caracteres):
+                  VIN (17 Caracteres) - Opcional:
                 </label>
                 <div className={styles.inputWrapper}>
                   <FaBarcode className={styles.inputIcon} />
@@ -220,6 +213,9 @@ export const VehicleForm: React.FC<VehicleFormProps> = ({
                     maxLength={17}
                     className={`${styles.textInput} ${errors.vin ? styles.inputError : ''}`}
                     {...register("vin")}
+                    onInput={(e) => {
+                      e.currentTarget.value = e.currentTarget.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+                    }}
                   />
                 </div>
                 {errors.vin && <span className={styles.errorMessage}>{errors.vin.message}</span>}

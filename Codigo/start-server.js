@@ -6,7 +6,7 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const PORT = 3000;
+const PORT = 29482;
 const TUNNEL_FILE = path.join(__dirname, 'tunnel.txt');
 
 console.clear();

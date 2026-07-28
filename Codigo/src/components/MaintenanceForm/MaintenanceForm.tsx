@@ -10,11 +10,10 @@ import styles from './MaintenanceForm.module.css';
 const createMaintenanceSchema = (lastChangeKm: number, currentVehicleKm: number) => z.object({
   type: z.enum(['Preventivo', 'Correctivo']),
   date: z.string().trim().min(1, { message: "La fecha es obligatoria" }).refine((value) => {
-    const selectedDate = new Date(value);
+    const selectedDate = new Date(value + 'T12:00:00');
     const today = new Date();
-    const minDate = new Date('1885-01-01');
+    const minDate = new Date('1885-01-01T12:00:00');
     today.setHours(23, 59, 59, 999);
-    selectedDate.setHours(0, 0, 0, 0);
     return !Number.isNaN(selectedDate.getTime()) && selectedDate >= minDate && selectedDate <= today;
   }, { message: "La fecha no puede ser futura ni anterior a 1885" }),
   km: z.coerce.number({
@@ -23,18 +22,13 @@ const createMaintenanceSchema = (lastChangeKm: number, currentVehicleKm: number)
   .int({ message: "Debe ser un número entero" })
   .positive({ message: "El kilometraje debe ser mayor a cero" })
   .max(1000000, { message: "El kilometraje parece demasiado alto" })
-  .refine(val => val >= Number(lastChangeKm), { message: `El kilometraje debe ser mayor o igual al último cambio registrado (${lastChangeKm.toLocaleString()} km)` })
-  .refine((value) => value <= currentVehicleKm, {
-    message: `El kilometraje no puede superar el odómetro actual (${currentVehicleKm} km)`
-  }),
+  .refine(val => val >= Number(lastChangeKm), { message: `El kilometraje debe ser mayor o igual al último cambio registrado (${lastChangeKm.toLocaleString()} km)` }),
   cost: z.coerce.number({
     invalid_type_error: "Debe ser un número"
   })
-  .positive({ message: "El costo debe ser mayor a cero" })
+  .nonnegative({ message: "El costo no puede ser negativo" })
   .max(1000000, { message: "El costo parece demasiado alto" }),
-  provider: z.string().trim().min(3, { message: "Especifica el taller o proveedor (mínimo 3 letras)" }).refine((value) => value.split(/\s+/).filter(Boolean).length >= 1, {
-    message: "Ingresa un nombre de taller o proveedor válido"
-  })
+  provider: z.string().trim()
 });
 
 type MaintenanceFormValues = z.infer<ReturnType<typeof createMaintenanceSchema>>;
@@ -74,13 +68,12 @@ export const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
   });
 
   const onSubmit = (data: MaintenanceFormValues) => {
-    // Registrar el mantenimiento
     onRecordMaintenance(
       piece.id,
       data.km,
       data.date,
       data.cost,
-      data.provider,
+      data.provider.toUpperCase(),
       data.type
     );
     
@@ -154,7 +147,7 @@ export const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
 
           <div className={styles.formRow}>
             <div className={styles.formGroup} style={{ flex: 1 }}>
-              <label htmlFor="maint-km-input" className={styles.inputLabel}>Kilometraje Registrado:</label>
+              <label htmlFor="maint-km-input" className={styles.inputLabel}>Odómetro al momento del cambio:</label>
               <div className={styles.inputWrapper}>
                 <FaRoad className={styles.inputIcon} />
                 <input 
@@ -172,7 +165,7 @@ export const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
             </div>
 
             <div className={styles.formGroup} style={{ flex: 1 }}>
-              <label htmlFor="cost-input" className={styles.inputLabel}>Costo del Servicio ($):</label>
+              <label htmlFor="cost-input" className={styles.inputLabel}>Costo del Servicio ($) - Opcional:</label>
               <div className={styles.inputWrapper}>
                 <FaDollarSign className={styles.inputIcon} />
                 <input 
@@ -191,7 +184,7 @@ export const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
           </div>
 
           <div className={styles.formGroup}>
-            <label htmlFor="provider-input" className={styles.inputLabel}>Taller / Proveedor:</label>
+            <label htmlFor="provider-input" className={styles.inputLabel}>Taller / Proveedor - Opcional:</label>
             <div className={styles.inputWrapper}>
               <FaTools className={styles.inputIcon} />
               <input 

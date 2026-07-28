@@ -134,7 +134,22 @@ h1, h2, h3, h4, h5, h6 {
   box-shadow: 0 1px 0 var(--duo-red-dark);
 }
 
-/* Adaptación de tarjetas */
+.staticInput {
+  width: 100%;
+  background-color: transparent;
+  border: none;
+  font-family: var(--font-body);
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  outline: none;
+  cursor: not-allowed;
+}
+
+.staticInput:disabled {
+  opacity: 1;
+}
+
 .card-duo {
   background-color: var(--bg-card);
   border: 1px solid var(--border-color);
@@ -149,6 +164,18 @@ input:focus-visible,
 select:focus-visible {
   outline: 2px solid var(--duo-blue);
   outline-offset: 2px;
+}
+
+/* Ocultar flechas (spin buttons) en inputs numéricos */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type="number"] {
+  -moz-appearance: textfield; /* Firefox */
+  appearance: textfield; /* Estándar moderno */
 }
 
 .cursor-pointer {

@@ -3,7 +3,17 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { motion } from 'framer-motion';
-import { FaSlidersH, FaTimes, FaCheckCircle, FaRoad, FaCalendarAlt } from 'react-icons/fa';
+import { FaSlidersH, FaTimes, FaCheckCircle, FaRoad, FaCalendarAlt, FaWrench } from 'react-icons/fa';
+import { 
+  GiStopSign,
+  GiSuspensionBridge,
+  GiGears,
+  GiGearStickPattern,
+  GiElectric,
+  GiCarWheel,
+  GiSnowflake2,
+  GiSteeringWheel
+} from 'react-icons/gi';
 import { Piece } from '../../types';
 
 import styles from '../MileageModal/MileageModal.module.css';
@@ -17,7 +27,6 @@ interface PieceEditModalProps {
 
 const pieceSchema = z.object({
   lifeKm: z.coerce.number().positive({ message: "La vida útil en km debe ser mayor a 0" }),
-  lifeMonths: z.coerce.number().positive({ message: "La vida útil en meses debe ser mayor a 0" }),
   lastChangeKm: z.coerce.number().nonnegative({ message: "El último cambio en km no puede ser negativo" }),
   lastChangeDate: z.string()
     .min(1, { message: "La fecha de último cambio es obligatoria" })
@@ -48,7 +57,6 @@ export const PieceEditModal: React.FC<PieceEditModalProps> = ({
     mode: "onChange",
     defaultValues: {
       lifeKm: piece.lifeKm,
-      lifeMonths: piece.lifeMonths,
       lastChangeKm: piece.lastChangeKm,
       lastChangeDate: piece.lastChangeDate
     }
@@ -58,7 +66,6 @@ export const PieceEditModal: React.FC<PieceEditModalProps> = ({
     onUpdatePiece({
       ...piece,
       lifeKm: data.lifeKm,
-      lifeMonths: data.lifeMonths,
       lastChangeKm: data.lastChangeKm,
       lastChangeDate: data.lastChangeDate
     });
@@ -84,9 +91,17 @@ export const PieceEditModal: React.FC<PieceEditModalProps> = ({
 
         <header className={styles.modalHeader}>
           <div className={styles.iconWrapper}>
-            <FaSlidersH />
+            {piece.category === 'frenos' && <GiStopSign />}
+            {piece.category === 'suspensión' && <GiSuspensionBridge />}
+            {piece.category === 'motor' && <GiGears />}
+            {piece.category === 'transmisión' && <GiGearStickPattern />}
+            {piece.category === 'eléctrico' && <GiElectric />}
+            {piece.category === 'neumáticos' && <GiCarWheel />}
+            {piece.category === 'enfriamiento' && <GiSnowflake2 />}
+            {piece.category === 'dirección' && <GiSteeringWheel />}
+            {!['frenos', 'suspensión', 'motor', 'transmisión', 'eléctrico', 'neumáticos', 'enfriamiento', 'dirección'].includes(piece.category) && <FaWrench />}
           </div>
-          <h2>Asignación de Tolerancias y Desgaste (RF07)</h2>
+          <h3>Asignación de Tolerancias</h3>
           <p className={styles.subtitle}>Componente: <strong>{piece.name}</strong></p>
         </header>
 
@@ -103,19 +118,6 @@ export const PieceEditModal: React.FC<PieceEditModalProps> = ({
                 />
               </div>
               {errors.lifeKm && <span className={styles.errorMessage}>{errors.lifeKm.message}</span>}
-            </div>
-
-            <div className="col-12">
-              <label className={styles.inputLabel}>Vida Útil de Fábrica (Meses):</label>
-              <div className={styles.inputWrapper}>
-                <FaCalendarAlt className={styles.inputIcon} />
-                <input 
-                  type="number" 
-                  className={styles.numberInput}
-                  {...register("lifeMonths")}
-                />
-              </div>
-              {errors.lifeMonths && <span className={styles.errorMessage}>{errors.lifeMonths.message}</span>}
             </div>
           </div>
 

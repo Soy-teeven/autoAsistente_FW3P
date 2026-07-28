@@ -65,16 +65,16 @@ const normalizeStoredVehicles = (value: unknown, fallback: Vehicle[]): Vehicle[]
         year: Number.isInteger(candidate.year) ? candidate.year! : new Date().getFullYear(),
         plate: typeof candidate.plate === 'string' ? candidate.plate.trim().toUpperCase() : 'ABC-1234',
         vin: typeof candidate.vin === 'string' ? candidate.vin.trim().toUpperCase() : `1HGCR2F83HA${Math.floor(100000 + Math.random() * 900000)}`,
-        initialKm: Number.isFinite(candidate.initialKm) && candidate.initialKm! >= 0 ? candidate.initialKm! : 0,
-        currentKm: Number.isFinite(candidate.currentKm) && candidate.currentKm! >= 0 ? candidate.currentKm! : 0,
+        initialKm: !Number.isNaN(Number(candidate.initialKm)) && Number(candidate.initialKm) >= 0 ? Number(candidate.initialKm) : 0,
+        currentKm: !Number.isNaN(Number(candidate.currentKm)) && Number(candidate.currentKm) >= 0 ? Number(candidate.currentKm) : 0,
         pieces: Array.isArray(candidate.pieces)
           ? candidate.pieces.filter((piece): piece is any => Boolean(piece) && typeof piece === 'object').map((piece, pieceIndex) => ({
               id: typeof piece.id === 'string' && piece.id ? piece.id : `p-${Date.now()}-${pieceIndex}`,
               name: typeof piece.name === 'string' && piece.name.trim() ? piece.name.trim() : 'Pieza',
               category: (piece.category as Piece['category']) || 'motor',
-              lifeKm: Number.isFinite(piece.lifeKm) && piece.lifeKm! >= 0 ? piece.lifeKm! : 0,
-              lifeMonths: Number.isFinite(piece.lifeMonths) && piece.lifeMonths! >= 0 ? piece.lifeMonths! : 0,
-              lastChangeKm: Number.isFinite(piece.lastChangeKm) && piece.lastChangeKm! >= 0 ? piece.lastChangeKm! : 0,
+              lifeKm: !Number.isNaN(Number(piece.lifeKm)) && Number(piece.lifeKm) >= 0 ? Number(piece.lifeKm) : 0,
+              lifeMonths: !Number.isNaN(Number(piece.lifeMonths)) && Number(piece.lifeMonths) >= 0 ? Number(piece.lifeMonths) : 0,
+              lastChangeKm: !Number.isNaN(Number(piece.lastChangeKm)) && Number(piece.lastChangeKm) >= 0 ? Number(piece.lastChangeKm) : 0,
               lastChangeDate: typeof piece.lastChangeDate === 'string' ? piece.lastChangeDate : new Date().toISOString().split('T')[0],
             }))
           : [],
@@ -217,12 +217,26 @@ function App() {
       currentKm: Math.max(newVehicle.currentKm, newVehicle.initialKm),
     };
 
-    if (vehicles.some(v => v.plate.toUpperCase() === normalizedVehicle.plate || v.vin.toUpperCase() === normalizedVehicle.vin)) {
+    if (vehicles.some(v => 
+      v.plate.toUpperCase() === normalizedVehicle.plate || 
+      (normalizedVehicle.vin !== "" && v.vin.toUpperCase() === normalizedVehicle.vin)
+    )) {
+      alert("Error: La placa o el VIN ya existen en otro vehículo.");
       return;
     }
 
     setVehicles(prev => [...prev, normalizedVehicle]);
     setActiveVehicleId(normalizedVehicle.id);
+  };
+
+  const handleDeleteVehicle = (vehicleId: string) => {
+    if (window.confirm("¿Estás seguro de que deseas eliminar este vehículo permanentemente?")) {
+      setVehicles(prev => prev.filter(v => v.id !== vehicleId));
+      if (activeVehicleId === vehicleId) {
+        const remainingOwn = vehicles.filter(v => v.userId === currentUser?.id && v.id !== vehicleId);
+        setActiveVehicleId(remainingOwn.length > 0 ? remainingOwn[0].id : '');
+      }
+    }
   };
 
   const handleUpdatePiece = (updatedPiece: Piece) => {
@@ -239,6 +253,36 @@ function App() {
     );
   };
 
+  const handleAddPieceToVehicle = (newPieces: Piece[]) => {
+    setVehicles(prevVehicles => 
+      prevVehicles.map(v => {
+        if (v.id === activeVehicle?.id) {
+          return {
+            ...v,
+            pieces: [...v.pieces, ...newPieces]
+          };
+        }
+        return v;
+      })
+    );
+  };
+
+  const handleRemovePieceFromVehicle = (pieceId: string) => {
+    if (window.confirm("¿Estás seguro de que deseas quitar esta pieza del vehículo? (Podrás volver a añadirla luego)")) {
+      setVehicles(prevVehicles => 
+        prevVehicles.map(v => {
+          if (v.id === activeVehicle?.id) {
+            return {
+              ...v,
+              pieces: v.pieces.filter(p => p.id !== pieceId)
+            };
+          }
+          return v;
+        })
+      );
+    }
+  };
+
   const handleRecordMaintenance = (
     pieceId: string, 
     lastChangeKm: number, 
@@ -251,7 +295,10 @@ function App() {
       return;
     }
 
-    if (!Number.isFinite(lastChangeKm) || lastChangeKm < 0 || !Number.isFinite(cost) || cost <= 0 || !provider.trim()) {
+    const parsedLastChangeKm = Number(lastChangeKm);
+    const parsedCost = Number(cost);
+
+    if (Number.isNaN(parsedLastChangeKm) || parsedLastChangeKm < 0 || Number.isNaN(parsedCost) || parsedCost < 0) {
       return;
     }
 
@@ -263,13 +310,13 @@ function App() {
     setVehicles(prevVehicles => 
       prevVehicles.map(v => {
         if (v.id === activeVehicle?.id) {
-          const newCurrentKm = Math.max(v.currentKm, lastChangeKm);
+          const newCurrentKm = Math.max(v.currentKm, parsedLastChangeKm);
           return {
             ...v,
             currentKm: newCurrentKm,
             pieces: v.pieces.map(p => 
               p.id === pieceId 
-                ? { ...p, lastChangeKm, lastChangeDate } 
+                ? { ...p, lastChangeKm: parsedLastChangeKm, lastChangeDate } 
                 : p
             )
           };
@@ -465,17 +512,7 @@ function App() {
             {isMenuExpanded && <span>Mi Perfil</span>}
           </button>
 
-          {currentUser.role === 'admin' && (
-            <button 
-              onClick={() => setActiveSection('admin')}
-              className={`btn-duo-3d w-100 d-flex align-items-center gap-3 ${activeSection === 'admin' ? 'btn-duo-danger' : 'btn-duo-secondary'}`}
-              style={{ padding: '10px 14px', justifyContent: isMenuExpanded ? 'flex-start' : 'center' }}
-              title="Panel Admin"
-            >
-              <FaShieldAlt style={{ flexShrink: 0 }} />
-              {isMenuExpanded && <span>Panel Admin</span>}
-            </button>
-          )}
+
 
           <div className="mt-auto pt-3 border-top text-center text-secondary small">
             {isMenuExpanded ? (
@@ -498,9 +535,12 @@ function App() {
                 activeCategory={activeCategory}
                 setActiveCategory={setActiveCategory}
                 vehicles={myVehicles}
+                onDeleteVehicle={handleDeleteVehicle}
                 onOpenMileageModal={() => setIsMileageModalOpen(true)}
                 onOpenMaintenanceModal={setSelectedPieceForMaint}
                 onUpdatePiece={handleUpdatePiece}
+                onAddPieceToVehicle={handleAddPieceToVehicle}
+                onRemovePieceFromVehicle={handleRemovePieceFromVehicle}
                 highlightedPieceId={highlightedPieceId}
                 setHighlightedPieceId={setHighlightedPieceId}
                 onNavigateToNewVehicle={() => setActiveSection('new-vehicle')}
