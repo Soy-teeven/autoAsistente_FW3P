@@ -99,7 +99,7 @@ function App() {
     const initialVehicles = normalizeStoredVehicles(readStoredJSON('user_vehicles', []), []);
     // Solo considerar vehículos que pertenecen al usuario que inició sesión
     const initialOwnVehicles = initialUser
-      ? initialVehicles.filter(v => v.userId === initialUser.id)
+      ? initialVehicles.filter(v => v.userId === initialUser.id || v.sharedWith?.includes(initialUser.id))
       : initialVehicles;
 
     if (savedActiveVehicleId && initialOwnVehicles.some(v => v.id === savedActiveVehicleId)) {
@@ -138,7 +138,7 @@ function App() {
   // ReferenceError por "temporal dead zone" al usar un const antes de definirlo).
   const myVehicles = useMemo(() => {
     if (!currentUser) return [];
-    return vehicles.filter(v => v.userId === currentUser.id);
+    return vehicles.filter(v => v.userId === currentUser.id || v.sharedWith?.includes(currentUser.id));
   }, [vehicles, currentUser]);
 
   useEffect(() => {
@@ -217,16 +217,30 @@ function App() {
       currentKm: Math.max(newVehicle.currentKm, newVehicle.initialKm),
     };
 
-    const duplicatePlate = vehicles.some(v => v.plate.toUpperCase() === normalizedVehicle.plate);
-    const duplicateVin = normalizedVehicle.vin !== "" && vehicles.some(v => v.vin.toUpperCase() === normalizedVehicle.vin);
+    const duplicatePlateVehicle = vehicles.find(v => v.plate.toUpperCase() === normalizedVehicle.plate);
 
-    if (duplicatePlate) {
-      alert("Error: La placa ingresada ya existe en otro vehículo.");
-      return;
-    }
-    if (duplicateVin) {
-      alert("Error: El VIN ingresado ya existe en otro vehículo.");
-      return;
+    if (duplicatePlateVehicle) {
+      const confirmImport = window.confirm(`La placa o matrícula ${normalizedVehicle.plate} ya se encuentra registrada en otra cuenta.\n\n¿Deseas conectar este vehículo a tu cuenta compartiendo su historial actual (kilometraje, mantenimientos y piezas)?\n\n- [Aceptar]: Sí, conectar al vehículo existente.\n- [Cancelar]: No, crear uno completamente nuevo desde cero.`);
+      
+      if (confirmImport) {
+        setVehicles(prev => prev.map(v => {
+          if (v.id === duplicatePlateVehicle.id) {
+            const shared = v.sharedWith || [];
+            if (!shared.includes(currentUser.id)) {
+              return { ...v, sharedWith: [...shared, currentUser.id] };
+            }
+          }
+          return v;
+        }));
+        setActiveVehicleId(duplicatePlateVehicle.id);
+        return;
+      }
+    } else {
+      const duplicateVin = normalizedVehicle.vin !== "" && vehicles.some(v => v.vin.toUpperCase() === normalizedVehicle.vin);
+      if (duplicateVin) {
+        alert("Error: El VIN ingresado ya existe en otro vehículo.");
+        return;
+      }
     }
 
     setVehicles(prev => [...prev, normalizedVehicle]);
@@ -234,10 +248,27 @@ function App() {
   };
 
   const handleDeleteVehicle = (vehicleId: string) => {
-    if (window.confirm("¿Estás seguro de que deseas eliminar este vehículo permanentemente?")) {
-      setVehicles(prev => prev.filter(v => v.id !== vehicleId));
+    if (window.confirm("¿Estás seguro de que deseas desvincular/eliminar este vehículo de tu cuenta?")) {
+      setVehicles(prev => prev.map(v => {
+        if (v.id === vehicleId) {
+          if (v.userId === currentUser?.id) {
+            // Si el dueño lo elimina pero hay otros, transferimos propiedad
+            if (v.sharedWith && v.sharedWith.length > 0) {
+              const newOwner = v.sharedWith[0];
+              return { ...v, userId: newOwner, sharedWith: v.sharedWith.slice(1) };
+            }
+            // Si nadie más lo tiene, se marca para eliminar (null)
+            return null;
+          }
+          // Si es un usuario compartido, solo se remueve de sharedWith
+          if (currentUser?.id && v.sharedWith?.includes(currentUser.id)) {
+            return { ...v, sharedWith: v.sharedWith.filter(id => id !== currentUser.id) };
+          }
+        }
+        return v;
+      }).filter((v): v is Vehicle => v !== null));
       if (activeVehicleId === vehicleId) {
-        const remainingOwn = vehicles.filter(v => v.userId === currentUser?.id && v.id !== vehicleId);
+        const remainingOwn = vehicles.filter(v => (v.userId === currentUser?.id || (currentUser?.id && v.sharedWith?.includes(currentUser.id))) && v.id !== vehicleId);
         setActiveVehicleId(remainingOwn.length > 0 ? remainingOwn[0].id : '');
       }
     }
@@ -556,7 +587,7 @@ function App() {
               <VehicleForm 
                 key="new-vehicle"
                 userId={currentUser.id}
-                existingVehicles={vehicles}
+                existingVehicles={myVehicles}
                 onAddVehicle={handleAddVehicle}
                 onNavigateToDashboard={() => setActiveSection('dashboard')}
               />
