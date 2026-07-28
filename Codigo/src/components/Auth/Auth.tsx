@@ -358,27 +358,15 @@ export const Auth: React.FC<AuthProps> = ({ onLoginSuccess }) => {
                 )}
               </div>
 
-              <div className="row g-2 mb-3">
-                <div className="col-6">
-                  <label className={styles.fieldLabel}>Rol de Usuario:</label>
-                  <div className={styles.inputWrapper}>
-                    <FaUserShield className={styles.inputIcon} />
-                    <select className={styles.authInput} {...regRegister("role")}>
-                      <option value="user">Usuario (Conductor)</option>
-                      <option value="admin">Administrador</option>
-                    </select>
-                  </div>
-                </div>
-                <div className="col-6">
-                  <label className={styles.fieldLabel}>Foto (Base64):</label>
-                  <div className={styles.inputWrapper}>
-                    <input 
-                      type="file" 
-                      accept="image/*"
-                      onChange={handleAvatarChange}
-                      className={styles.fileInput}
-                    />
-                  </div>
+              <div className={styles.formGroup}>
+                <label className={styles.fieldLabel}>Foto de Perfil - Opcional:</label>
+                <div className={styles.inputWrapper}>
+                  <input 
+                    type="file" 
+                    accept="image/*"
+                    onChange={handleAvatarChange}
+                    className={styles.fileInput}
+                  />
                 </div>
               </div>
 
@@ -399,20 +387,6 @@ export const Auth: React.FC<AuthProps> = ({ onLoginSuccess }) => {
           )}
         </div>
 
-        <div className={styles.demoAccounts}>
-          <p className="small text-muted text-center m-0 mt-3 mb-2">
-            <strong>Cuenta de Administrador (Contraseña: <code>password123</code>):</strong>
-          </p>
-          <div className="d-flex justify-content-center gap-2">
-            <button 
-              type="button" 
-              className="btn btn-sm btn-outline-primary d-flex align-items-center gap-1"
-              onClick={() => handleQuickLogin('admin@car.com')}
-            >
-              <FaShieldAlt /> Iniciar como Administrador
-            </button>
-          </div>
-        </div>
       </motion.div>
     </div>
   );

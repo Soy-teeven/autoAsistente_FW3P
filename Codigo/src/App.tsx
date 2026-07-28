@@ -433,7 +433,7 @@ function App() {
               ) : (
                 <FaUser className="text-secondary" />
               )}
-              <span>{currentUser.name} ({currentUser.role.toUpperCase()})</span>
+              <span>{currentUser.name}</span>
             </span>
           </div>
         </div>

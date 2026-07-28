@@ -80,7 +80,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({
           <div className={styles.infoRow}>
             <FaEnvelope className={styles.infoIcon} />
             <div className={styles.infoContent}>
-              <span className={styles.infoLabel}>CORREO REGISTRADO</span>
+              <span className={styles.infoLabel}>CORREO REGISTRADO ({user.role === 'admin' ? 'Administrador' : 'Usuario'})</span>
               <input 
                 type="text" 
                 value={user.email} 

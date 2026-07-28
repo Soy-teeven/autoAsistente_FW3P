@@ -44,6 +44,7 @@
   --border-shadow: #1e293b;
   --bg-input-error: #451a1c;
   --text-input-error: #f8fafc;
+  color-scheme: dark;
 }
 
 * {
