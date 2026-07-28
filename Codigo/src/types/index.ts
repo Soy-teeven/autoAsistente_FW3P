@@ -22,6 +22,7 @@ export interface Piece {
 export interface Vehicle {
   id: string;
   userId: string;
+  sharedWith?: string[];
   name: string;
   brand: string;
   model: string;
