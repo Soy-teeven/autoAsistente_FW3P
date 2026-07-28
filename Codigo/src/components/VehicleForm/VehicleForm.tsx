@@ -37,13 +37,7 @@ const createVehicleSchema = (existingVehicles: Vehicle[]) => z.object({
     }),
   initialKm: z.coerce.number({ invalid_type_error: "Debe ser un número" })
     .nonnegative({ message: "El kilometraje de registro no puede ser negativo" })
-    .max(1000000, { message: "El kilometraje inicial parece demasiado alto" }),
-  currentKm: z.coerce.number({ invalid_type_error: "Debe ser un número" })
-    .nonnegative({ message: "El kilometraje actual no puede ser negativo" })
-    .max(1000000, { message: "El kilometraje actual parece demasiado alto" })
-}).refine(data => data.currentKm >= data.initialKm, {
-  message: "El kilometraje actual no puede ser menor al kilometraje inicial",
-  path: ["currentKm"]
+    .max(1000000, { message: "El kilometraje inicial parece demasiado alto" })
 });
 
 type VehicleFormValues = z.infer<ReturnType<typeof createVehicleSchema>>;
@@ -73,7 +67,6 @@ export const VehicleForm: React.FC<VehicleFormProps> = ({
     mode: "onChange",
     defaultValues: {
       initialKm: 0,
-      currentKm: 0,
       year: new Date().getFullYear(),
       name: '',
       brand: '',
