@@ -217,11 +217,15 @@ function App() {
       currentKm: Math.max(newVehicle.currentKm, newVehicle.initialKm),
     };
 
-    if (vehicles.some(v => 
-      v.plate.toUpperCase() === normalizedVehicle.plate || 
-      (normalizedVehicle.vin !== "" && v.vin.toUpperCase() === normalizedVehicle.vin)
-    )) {
-      alert("Error: La placa o el VIN ya existen en otro vehículo.");
+    const duplicatePlate = vehicles.some(v => v.plate.toUpperCase() === normalizedVehicle.plate);
+    const duplicateVin = normalizedVehicle.vin !== "" && vehicles.some(v => v.vin.toUpperCase() === normalizedVehicle.vin);
+
+    if (duplicatePlate) {
+      alert("Error: La placa ingresada ya existe en otro vehículo.");
+      return;
+    }
+    if (duplicateVin) {
+      alert("Error: El VIN ingresado ya existe en otro vehículo.");
       return;
     }
 
@@ -552,7 +556,7 @@ function App() {
               <VehicleForm 
                 key="new-vehicle"
                 userId={currentUser.id}
-                existingVehicles={myVehicles}
+                existingVehicles={vehicles}
                 onAddVehicle={handleAddVehicle}
                 onNavigateToDashboard={() => setActiveSection('dashboard')}
               />
