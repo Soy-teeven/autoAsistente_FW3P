@@ -23,52 +23,61 @@ interface PieceEditModalProps {
   onClose: () => void;
   piece: Piece;
   onUpdatePiece: (updatedPiece: Piece) => void;
+  vehicleKm: number;
 }
 
-const pieceSchema = z.object({
+const createPieceSchema = (vehicleKm: number) => z.object({
   lifeKm: z.union([z.string(), z.number()])
-    .refine(val => val !== '' && !isNaN(Number(val)) && Number(val) > 0, { message: "Requerido (mayor a 0)" })
-    .transform(val => Number(val)),
-  lifeMonths: z.union([z.string(), z.number()])
     .refine(val => val !== '' && !isNaN(Number(val)) && Number(val) > 0, { message: "Requerido (mayor a 0)" })
     .transform(val => Number(val)),
   lastChangeKm: z.union([z.string(), z.number()])
     .refine(val => val !== '' && !isNaN(Number(val)) && Number(val) >= 0, { message: "Requerido (no negativo)" })
-    .transform(val => Number(val)),
+    .transform(val => Number(val))
+    .refine(val => val <= vehicleKm, { message: `Máximo permitido: ${vehicleKm} km` }),
   lastChangeDate: z.string()
     .min(1, { message: "La fecha es obligatoria" })
 });
 
-type PieceFormValues = z.infer<typeof pieceSchema>;
+type PieceFormValues = z.infer<ReturnType<typeof createPieceSchema>>;
 
 export const PieceEditModal: React.FC<PieceEditModalProps> = ({
   isOpen,
   onClose,
   piece,
-  onUpdatePiece
+  onUpdatePiece,
+  vehicleKm
 }) => {
+  const pieceSchema = createPieceSchema(vehicleKm);
   const isNewPiece = piece.id.startsWith('p-new-');
 
   const {
     register,
     handleSubmit,
-    formState: { errors, isValid }
+    formState: { errors, isValid },
+    reset
   } = useForm<PieceFormValues>({
     resolver: zodResolver(pieceSchema),
     mode: "onChange",
     defaultValues: {
       lifeKm: isNewPiece ? ('' as any) : piece.lifeKm,
-      lifeMonths: isNewPiece ? ('' as any) : piece.lifeMonths,
-      lastChangeKm: isNewPiece ? ('' as any) : piece.lastChangeKm,
-      lastChangeDate: isNewPiece ? '' : piece.lastChangeDate
+      lastChangeKm: isNewPiece ? ('' as any) : (piece.lastChangeKm === undefined ? ('' as any) : piece.lastChangeKm),
+      lastChangeDate: isNewPiece ? '' : (piece.lastChangeDate || '')
     }
   });
+
+  React.useEffect(() => {
+    reset({
+      lifeKm: isNewPiece ? ('' as any) : piece.lifeKm,
+      lastChangeKm: isNewPiece ? ('' as any) : (piece.lastChangeKm === undefined ? ('' as any) : piece.lastChangeKm),
+      lastChangeDate: isNewPiece ? '' : (piece.lastChangeDate || '')
+    });
+  }, [piece, reset, isNewPiece]);
 
   const onSubmit = (data: PieceFormValues) => {
     onUpdatePiece({
       ...piece,
       lifeKm: data.lifeKm,
-      lifeMonths: data.lifeMonths,
+      lifeMonths: piece.lifeMonths || 36,
       lastChangeKm: data.lastChangeKm,
       lastChangeDate: data.lastChangeDate
     });
@@ -109,7 +118,7 @@ export const PieceEditModal: React.FC<PieceEditModalProps> = ({
         </header>
 
         <form onSubmit={handleSubmit(onSubmit)} className={styles.modalForm}>
-          <div className="row g-3 mb-3">
+          <div className="row g-3 mb-4">
             <div className="col-12">
               <label className={styles.inputLabel}>Vida Útil de Fábrica (Km):</label>
               <div className={styles.inputWrapper}>
@@ -117,44 +126,28 @@ export const PieceEditModal: React.FC<PieceEditModalProps> = ({
                 <input 
                   type="number" 
                   className={styles.numberInput}
-                  placeholder="Ej: 50000"
+                  placeholder={isNewPiece && piece.lifeKm ? `Ej: ${piece.lifeKm}` : "Ej: 50000"}
                   {...register("lifeKm")}
                 />
               </div>
               {errors.lifeKm && <span className={styles.errorMessage}>{errors.lifeKm.message}</span>}
             </div>
 
-            <div className="col-12">
-              <label className={styles.inputLabel}>Vida Útil de Fábrica (Meses):</label>
-              <div className={styles.inputWrapper}>
-                <FaCalendarAlt className={styles.inputIcon} />
-                <input 
-                  type="number" 
-                  className={styles.numberInput}
-                  placeholder="Ej: 36"
-                  {...register("lifeMonths")}
-                />
-              </div>
-              {errors.lifeMonths && <span className={styles.errorMessage}>{errors.lifeMonths.message}</span>}
-            </div>
-          </div>
-
-          <div className="row g-3 mb-3">
-            <div className="col-12">
+            <div className="col-md-6">
               <label className={styles.inputLabel}>Km en Último Cambio:</label>
               <div className={styles.inputWrapper}>
                 <FaRoad className={styles.inputIcon} />
                 <input 
                   type="number" 
                   className={styles.numberInput}
-                  placeholder="Ej: 85000"
+                  placeholder={isNewPiece && piece.lastChangeKm !== undefined ? `Ej: ${piece.lastChangeKm}` : "Ej: 85000"}
                   {...register("lastChangeKm")}
                 />
               </div>
               {errors.lastChangeKm && <span className={styles.errorMessage}>{errors.lastChangeKm.message}</span>}
             </div>
 
-            <div className="col-12">
+            <div className="col-md-6">
               <label className={styles.inputLabel}>Fecha de Último Cambio:</label>
               <div className={styles.inputWrapper}>
                 <FaCalendarAlt className={styles.inputIcon} />

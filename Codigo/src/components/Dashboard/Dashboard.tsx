@@ -545,10 +545,15 @@ export const Dashboard: React.FC<DashboardProps> = ({
           isOpen={!!editingPiece}
           onClose={() => setEditingPiece(null)}
           piece={editingPiece}
+          vehicleKm={selectedVehicle?.currentKm || 0}
           onUpdatePiece={(updated) => {
             const isNew = !selectedVehicle?.pieces.some(p => p.id === updated.id);
             if (isNew && onAddPieceToVehicle) {
-              onAddPieceToVehicle([updated]);
+              const finalizedPiece = {
+                ...updated,
+                id: updated.id.replace('p-new-', 'p-')
+              };
+              onAddPieceToVehicle([finalizedPiece]);
             } else {
               onUpdatePiece(updated);
             }
