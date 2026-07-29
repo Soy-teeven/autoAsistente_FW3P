@@ -141,8 +141,8 @@ export const storageService = {
       name: trimmedName,
       email: trimmedEmail,
       password: passwordHash,
-      // Asignar rol de admin a dmjch03@gmail.com siempre, o si es el primer usuario
-      role: (trimmedEmail === 'dmjch03@gmail.com' || users.length === 0) ? 'admin' : 'user',
+      // Asignar rol de admin a dmjch03@gmail.com de forma estricta y exclusiva
+      role: (trimmedEmail === 'dmjch03@gmail.com') ? 'admin' : 'user',
       avatar: avatar || '',
       securityQuestion: securityQuestion?.trim() || '',
       securityAnswer: securityAnswer?.trim() || '',
