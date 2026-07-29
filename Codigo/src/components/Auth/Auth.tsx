@@ -311,7 +311,7 @@ export const Auth: React.FC<AuthProps> = ({ onLoginSuccess }) => {
               
               <button 
                 type="button" 
-                className="btn btn-link text-decoration-none text-light w-100 mt-2"
+                className={`btn btn-link text-decoration-none w-100 mt-2 ${styles.themeTextSecondary}`}
                 onClick={() => { setIsForgotPassword(false); setFpStep(1); setApiError(null); }}
               >
                 Volver a Iniciar Sesión
@@ -320,7 +320,7 @@ export const Auth: React.FC<AuthProps> = ({ onLoginSuccess }) => {
           ) : isVerifyingEmail ? (
             <div className={styles.authForm}>
               <h3 className="text-center mb-4">Validar Correo</h3>
-              <p className="text-center text-light mb-4">
+              <p className={`text-center mb-4 ${styles.themeTextSecondary}`}>
                 Ingresa el código de 6 dígitos que enviamos a tu correo para verificar tu cuenta.
               </p>
               
@@ -349,7 +349,7 @@ export const Auth: React.FC<AuthProps> = ({ onLoginSuccess }) => {
               
               <button 
                 type="button" 
-                className="btn btn-link text-decoration-none text-light w-100 mt-2"
+                className={`btn btn-link text-decoration-none w-100 mt-2 ${styles.themeTextSecondary}`}
                 onClick={() => setIsVerifyingEmail(false)}
               >
                 Cancelar
@@ -399,7 +399,7 @@ export const Auth: React.FC<AuthProps> = ({ onLoginSuccess }) => {
 
               <button 
                 type="button" 
-                className="btn btn-link text-decoration-none text-light w-100 mt-2"
+                className={`btn btn-link text-decoration-none w-100 mt-2 ${styles.themeTextSecondary}`}
                 onClick={() => { setIsForgotPassword(true); setApiError(null); setSuccessMsg(null); }}
               >
                 ¿Olvidaste tu contraseña?

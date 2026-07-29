@@ -221,3 +221,11 @@
   font-weight: 700;
   font-size: 0.85rem;
 }
+
+.themeTextSecondary {
+  color: var(--text-secondary) !important;
+}
+
+.themeTextPrimary {
+  color: var(--text-primary) !important;
+}
