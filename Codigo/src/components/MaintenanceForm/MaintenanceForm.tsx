@@ -20,7 +20,7 @@ const createMaintenanceSchema = (lastChangeKm: number, currentVehicleKm: number)
     invalid_type_error: "Debe ser un número"
   })
   .int({ message: "Debe ser un número entero" })
-  .positive({ message: "El kilometraje debe ser mayor a cero" })
+  .nonnegative({ message: "El kilometraje no puede ser negativo" })
   .max(1000000, { message: "El kilometraje parece demasiado alto" })
   .refine(val => val >= Number(lastChangeKm), { message: `El kilometraje debe ser mayor o igual al último cambio registrado (${lastChangeKm.toLocaleString()} km)` }),
   cost: z.coerce.number({

@@ -492,7 +492,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
                           lastChangeKm: selectedVehicle.currentKm,
                           lastChangeDate: new Date().toISOString().split('T')[0]
                         };
-                        onAddPieceToVehicle?.([newPiece]);
+                        
+                        setEditingPiece(newPiece);
                       }}
                       title={`Añadir ${p.name}`}
                     >
@@ -544,7 +545,14 @@ export const Dashboard: React.FC<DashboardProps> = ({
           isOpen={!!editingPiece}
           onClose={() => setEditingPiece(null)}
           piece={editingPiece}
-          onUpdatePiece={onUpdatePiece}
+          onUpdatePiece={(updated) => {
+            const isNew = !selectedVehicle?.pieces.some(p => p.id === updated.id);
+            if (isNew && onAddPieceToVehicle) {
+              onAddPieceToVehicle([updated]);
+            } else {
+              onUpdatePiece(updated);
+            }
+          }}
         />
       )}
 

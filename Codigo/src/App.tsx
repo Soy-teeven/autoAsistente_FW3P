@@ -8,8 +8,10 @@ import { VehicleForm } from './components/VehicleForm/VehicleForm';
 import { MaintenanceForm } from './components/MaintenanceForm/MaintenanceForm';
 import { AdminPanel } from './components/AdminPanel/AdminPanel';
 import { User, Vehicle, Piece } from './types';
+import { storageService } from './services/storageService';
+import { emailService } from './services/emailService';
 
-import { FaWrench, FaPlusCircle, FaUser, FaShieldAlt, FaSun, FaMoon, FaBars, FaCar } from 'react-icons/fa';
+import { FaWrench, FaPlusCircle, FaUser, FaShieldAlt, FaSun, FaMoon, FaBars, FaCar, FaUserShield } from 'react-icons/fa';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const readStoredJSON = <T,>(key: string, fallback: T): T => {
@@ -109,7 +111,10 @@ function App() {
   });
 
   const [activeCategory, setActiveCategory] = useState<string>('todas');
-  const [activeSection, setActiveSection] = useState<'dashboard' | 'new-vehicle' | 'profile' | 'admin'>('dashboard');
+  const [activeSection, setActiveSection] = useState<'dashboard' | 'new-vehicle' | 'profile' | 'admin'>(() => {
+    const initialUser = normalizeStoredUser(readStoredJSON('logged_user', null));
+    return initialUser?.role === 'admin' ? 'admin' : 'dashboard';
+  });
   const [isMenuExpanded, setIsMenuExpanded] = useState(false);
 
   // Modales
@@ -174,6 +179,11 @@ function App() {
   const handleLoginSuccess = (user: User) => {
     setCurrentUser(user);
     localStorage.setItem('logged_user', JSON.stringify(user));
+    if (user.role === 'admin') {
+      setActiveSection('admin');
+    } else {
+      setActiveSection('dashboard');
+    }
   };
 
   const handleLogout = () => {
@@ -195,6 +205,8 @@ function App() {
       return;
     }
 
+    const oldKm = currentVehicle.currentKm;
+
     setVehicles(prevVehicles => 
       prevVehicles.map(v => 
         v.id === activeVehicle?.id 
@@ -202,6 +214,43 @@ function App() {
           : v
       )
     );
+
+    // Disparar correos si el cambio de KM cruza un umbral (75% o 90%)
+    currentVehicle.pieces.forEach(p => {
+      const safeLifeKm = (Number.isFinite(p.lifeKm) && p.lifeKm > 0) ? p.lifeKm : 10000;
+      
+      const oldKmDriven = Math.max(0, oldKm - p.lastChangeKm);
+      const oldWearPercentage = Math.round(Math.max((oldKmDriven / safeLifeKm), 0) * 100);
+      
+      const newKmDriven = Math.max(0, newKm - p.lastChangeKm);
+      const newWearPercentage = Math.round(Math.max((newKmDriven / safeLifeKm), 0) * 100);
+      
+      let type: 'Próximo' | 'Vencido' | null = null;
+      if (oldWearPercentage < 75 && newWearPercentage >= 75 && newWearPercentage < 90) {
+        type = 'Próximo';
+      } else if (oldWearPercentage < 90 && newWearPercentage >= 90) {
+        type = 'Vencido';
+      }
+      
+      if (type && currentUser) {
+        // Notificar al usuario
+        emailService.notifyMaintenanceDue(currentUser.email, currentUser.name, currentVehicle.name, p.name, type, newKm);
+        
+        // Notificar a todos los administradores
+        try {
+          const storedUsers = localStorage.getItem('users_database');
+          if (storedUsers) {
+            const users = JSON.parse(storedUsers);
+            const admins = users.filter((u: any) => u.role === 'admin');
+            admins.forEach((admin: any) => {
+              emailService.notifyAdminMaintenance(admin.email, currentUser.name, currentUser.email, currentVehicle.name, p.name, newKm);
+            });
+          }
+        } catch (e) {
+          console.error("Error al notificar a los administradores:", e);
+        }
+      }
+    });
   };
 
   const handleAddVehicle = (newVehicle: Vehicle) => {
@@ -220,19 +269,22 @@ function App() {
     const duplicatePlateVehicle = vehicles.find(v => v.plate.toUpperCase() === normalizedVehicle.plate);
 
     if (duplicatePlateVehicle) {
-      const confirmImport = window.confirm(`La placa o matrícula ${normalizedVehicle.plate} ya se encuentra registrada en otra cuenta.\n\n¿Deseas conectar este vehículo a tu cuenta compartiendo su historial actual (kilometraje, mantenimientos y piezas)?\n\n- [Aceptar]: Sí, conectar al vehículo existente.\n- [Cancelar]: No, crear uno completamente nuevo desde cero.`);
+      const confirmImport = window.confirm(`La placa o matrícula ${normalizedVehicle.plate} ya se encuentra registrada en otra cuenta.\n\n¿Deseas enviar una solicitud al propietario para que te dé acceso a este vehículo?\n\n- [Aceptar]: Sí, enviar solicitud de acceso.\n- [Cancelar]: No, cancelar operación.`);
       
       if (confirmImport) {
-        setVehicles(prev => prev.map(v => {
-          if (v.id === duplicatePlateVehicle.id) {
-            const shared = v.sharedWith || [];
-            if (!shared.includes(currentUser.id)) {
-              return { ...v, sharedWith: [...shared, currentUser.id] };
-            }
+        try {
+          const owner = storageService.getUserById(duplicatePlateVehicle.userId);
+          if (owner) {
+            storageService.createShareRequest(duplicatePlateVehicle.id, currentUser.id, owner.email);
+            alert("Solicitud de acceso enviada al propietario. Recibirás acceso cuando sea aceptada.");
+          } else {
+            alert("Error: No se pudo encontrar al propietario del vehículo.");
           }
-          return v;
-        }));
-        setActiveVehicleId(duplicatePlateVehicle.id);
+        } catch (error: any) {
+          alert(`Error: ${error.message}`);
+        }
+        return;
+      } else {
         return;
       }
     } else {
@@ -444,10 +496,15 @@ function App() {
             <NotificationCenter 
               pieces={activeVehicle ? activeVehicle.pieces : []}
               currentKm={activeVehicle ? activeVehicle.currentKm : 0}
+              vehicleId={activeVehicle?.id || ''}
               readIds={readNotificationIds}
               onMarkAsRead={handleMarkAsRead}
               onMarkAllAsRead={handleMarkAllAsRead}
               onSelectNotification={handleSelectNotification}
+              currentUserId={currentUser.id}
+              onShareRequestAction={() => setVehicles(storageService.getVehicles())}
+              isAdmin={currentUser.role === 'admin'}
+              allVehicles={vehicles}
             />
 
             {/* Usuario Activo Badge */}
@@ -516,26 +573,41 @@ function App() {
             )}
           </div>
 
-          <button 
-            onClick={() => setActiveSection('dashboard')}
-            className={`btn-duo-3d w-100 d-flex align-items-center gap-3 ${activeSection === 'dashboard' ? 'btn-duo-primary' : 'btn-duo-secondary'}`}
-            style={{ padding: '10px 14px', justifyContent: isMenuExpanded ? 'flex-start' : 'center' }}
-            title="Dashboard"
-          >
-            <FaWrench style={{ flexShrink: 0 }} />
-            {isMenuExpanded && <span>Dashboard</span>}
-          </button>
+          {currentUser.role !== 'admin' && (
+            <>
+              <button 
+                onClick={() => setActiveSection('dashboard')}
+                className={`btn-duo-3d w-100 d-flex align-items-center gap-3 ${activeSection === 'dashboard' ? 'btn-duo-primary' : 'btn-duo-secondary'}`}
+                style={{ padding: '10px 14px', justifyContent: isMenuExpanded ? 'flex-start' : 'center' }}
+                title="Dashboard"
+              >
+                <FaWrench style={{ flexShrink: 0 }} />
+                {isMenuExpanded && <span>Dashboard</span>}
+              </button>
 
+              <button 
+                onClick={() => setActiveSection('new-vehicle')}
+                className={`btn-duo-3d w-100 d-flex align-items-center gap-3 ${activeSection === 'new-vehicle' ? 'btn-duo-primary' : 'btn-duo-secondary'}`}
+                style={{ padding: '10px 14px', justifyContent: isMenuExpanded ? 'flex-start' : 'center' }}
+                title="Nuevo Vehículo"
+              >
+                <FaPlusCircle style={{ flexShrink: 0 }} />
+                {isMenuExpanded && <span>Nuevo Vehículo</span>}
+              </button>
+            </>
+          )}
 
-          <button 
-            onClick={() => setActiveSection('new-vehicle')}
-            className={`btn-duo-3d w-100 d-flex align-items-center gap-3 ${activeSection === 'new-vehicle' ? 'btn-duo-primary' : 'btn-duo-secondary'}`}
-            style={{ padding: '10px 14px', justifyContent: isMenuExpanded ? 'flex-start' : 'center' }}
-            title="Nuevo Vehículo"
-          >
-            <FaPlusCircle style={{ flexShrink: 0 }} />
-            {isMenuExpanded && <span>Nuevo Vehículo</span>}
-          </button>
+          {currentUser.role === 'admin' && (
+            <button 
+              onClick={() => setActiveSection('admin')}
+              className={`btn-duo-3d w-100 d-flex align-items-center gap-3 ${activeSection === 'admin' ? 'btn-duo-primary' : 'btn-duo-secondary'}`}
+              style={{ padding: '10px 14px', justifyContent: isMenuExpanded ? 'flex-start' : 'center' }}
+              title="Panel Admin"
+            >
+              <FaUserShield style={{ flexShrink: 0 }} />
+              {isMenuExpanded && <span>Admin</span>}
+            </button>
+          )}
 
           <button 
             onClick={() => setActiveSection('profile')}
@@ -546,8 +618,6 @@ function App() {
             <FaUser style={{ flexShrink: 0 }} />
             {isMenuExpanded && <span>Mi Perfil</span>}
           </button>
-
-
 
           <div className="mt-auto pt-3 border-top text-center text-secondary small">
             {isMenuExpanded ? (
@@ -561,10 +631,9 @@ function App() {
         {/* Área de Contenido Principal */}
         <main className="main-content flex-grow-1 p-4" style={{ overflowY: 'auto' }}>
           <AnimatePresence mode="wait">
-            {activeSection === 'dashboard' && (
+            {activeSection === 'dashboard' && currentUser.role !== 'admin' && (
               <Dashboard 
                 key="dashboard"
-
                 activeVehicleId={activeVehicleId}
                 setActiveVehicleId={setActiveVehicleId}
                 activeCategory={activeCategory}
@@ -582,8 +651,7 @@ function App() {
               />
             )}
 
-
-            {activeSection === 'new-vehicle' && (
+            {activeSection === 'new-vehicle' && currentUser.role !== 'admin' && (
               <VehicleForm 
                 key="new-vehicle"
                 userId={currentUser.id}
@@ -603,7 +671,7 @@ function App() {
               />
             )}
 
-            {activeSection === 'admin' && (
+            {activeSection === 'admin' && currentUser.role === 'admin' && (
               <AdminPanel 
                 key="admin"
                 userRole={currentUser.role}

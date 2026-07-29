@@ -3,9 +3,9 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FaEnvelope, FaLock, FaUser, FaExclamationTriangle, FaUserShield, FaCheckCircle, FaCar, FaShieldAlt } from 'react-icons/fa';
-import bcrypt from 'bcryptjs';
+import { FaEnvelope, FaLock, FaUser, FaExclamationTriangle, FaCheckCircle, FaCar, FaShieldAlt } from 'react-icons/fa';
 import { User } from '../../types';
+import { storageService } from '../../services/storageService';
 
 import styles from './Auth.module.css';
 
@@ -26,6 +26,8 @@ const registerSchema = z.object({
   password: z.string().trim().min(6, { message: "La contraseña debe tener al menos 6 caracteres" }).refine((value) => /[A-Za-z]/.test(value) && /\d/.test(value), {
     message: "La contraseña debe incluir letras y números"
   }),
+  securityQuestion: z.string().trim().min(5, { message: "La pregunta de seguridad es obligatoria (mín. 5 caracteres)" }),
+  securityAnswer: z.string().trim().min(2, { message: "La respuesta es obligatoria" }),
   role: z.enum(['user', 'admin']),
   avatar: z.string().optional()
 });
@@ -36,6 +38,19 @@ interface AuthProps {
 
 export const Auth: React.FC<AuthProps> = ({ onLoginSuccess }) => {
   const [isRegister, setIsRegister] = useState(false);
+  const [isForgotPassword, setIsForgotPassword] = useState(false);
+  const [isVerifyingEmail, setIsVerifyingEmail] = useState(false);
+  const [verificationCode, setVerificationCode] = useState('');
+  const [expectedCode, setExpectedCode] = useState('');
+  const [tempRegData, setTempRegData] = useState<any>(null);
+
+  // Forgot password states
+  const [fpStep, setFpStep] = useState(1);
+  const [fpEmail, setFpEmail] = useState('');
+  const [fpQuestion, setFpQuestion] = useState('');
+  const [fpAnswer, setFpAnswer] = useState('');
+  const [fpNewPassword, setFpNewPassword] = useState('');
+
   const [apiError, setApiError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [avatarBase64, setAvatarBase64] = useState<string>('');
@@ -86,71 +101,15 @@ export const Auth: React.FC<AuthProps> = ({ onLoginSuccess }) => {
     reader.readAsDataURL(file);
   };
 
-  const onLogin = (data: z.infer<typeof loginSchema>) => {
+  const onLogin = async (data: z.infer<typeof loginSchema>) => {
     setApiError(null);
     setSuccessMsg(null);
-
-    const cleanEmail = data.email.trim().toLowerCase();
-    const cleanPassword = data.password.trim();
-
-    let users: User[] = [];
+    
     try {
-      const storedValue = localStorage.getItem('users_database');
-      users = storedValue ? JSON.parse(storedValue) : [];
-    } catch {
-      users = [];
-    }
-
-    if (!Array.isArray(users)) {
-      users = [];
-    }
-
-    const adminHash = bcrypt.hashSync('password123', 10);
-    const userHash = bcrypt.hashSync('password123', 10);
-
-    if (users.length === 0) {
-      users = [
-        { id: 'u-admin-1', name: 'Admin General', email: 'admin@car.com', password: adminHash, role: 'admin', avatar: '' },
-        { id: 'u-user-1', name: 'Juan Conductor', email: 'conductor@car.com', password: userHash, role: 'user', avatar: '' }
-      ];
-      localStorage.setItem('users_database', JSON.stringify(users));
-    }
-
-    const foundIndex = users.findIndex((u: User) => u && typeof u.email === 'string' && u.email.trim().toLowerCase() === cleanEmail);
-
-    if (foundIndex === -1) {
-      setApiError('Credenciales inválidas');
-      return;
-    }
-
-    const foundUser = users[foundIndex];
-    let isPasswordValid = false;
-
-    try {
-      if (foundUser.password && foundUser.password.startsWith('$2')) {
-        isPasswordValid = bcrypt.compareSync(cleanPassword, foundUser.password);
-      } else {
-        isPasswordValid = cleanPassword === foundUser.password;
-        if (isPasswordValid) {
-          foundUser.password = bcrypt.hashSync(cleanPassword, 10);
-          users[foundIndex] = foundUser;
-          localStorage.setItem('users_database', JSON.stringify(users));
-        }
-      }
-    } catch (err) {
-      isPasswordValid = cleanPassword === foundUser.password;
-    }
-
-    if (isPasswordValid) {
-      onLoginSuccess({
-        ...foundUser,
-        name: typeof foundUser.name === 'string' ? foundUser.name.trim() : 'Usuario',
-        email: cleanEmail,
-        role: foundUser.role === 'admin' ? 'admin' : 'user',
-        avatar: typeof foundUser.avatar === 'string' ? foundUser.avatar : '',
-      });
-    } else {
-      setApiError('Credenciales inválidas');
+      const user = await storageService.loginUser(data.email, data.password);
+      onLoginSuccess(user);
+    } catch (err: any) {
+      setApiError(err.message || 'Credenciales inválidas');
     }
   };
 
@@ -158,47 +117,71 @@ export const Auth: React.FC<AuthProps> = ({ onLoginSuccess }) => {
     setApiError(null);
     setSuccessMsg(null);
 
-    const cleanEmail = data.email.trim().toLowerCase();
-    const cleanName = data.name.trim();
+    // En lugar de registrar inmediatamente, iniciamos la validación de email
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    setExpectedCode(code);
+    setTempRegData(data);
+    setIsVerifyingEmail(true);
+    
+    // Simulación de envío de correo
+    console.log(`[Email Mock] Enviando código ${code} al correo ${data.email}`);
+    setSuccessMsg(`Se ha enviado un código de verificación a ${data.email}. (Para esta prueba, revisa la consola)`);
+  };
 
-    let users: User[] = [];
-    try {
-      const storedValue = localStorage.getItem('users_database');
-      users = storedValue ? JSON.parse(storedValue) : [];
-    } catch {
-      users = [];
-    }
-
-    if (!Array.isArray(users)) {
-      users = [];
-    }
-
-    const emailExists = users.some((u: User) => u && typeof u.email === 'string' && u.email.trim().toLowerCase() === cleanEmail);
-
-    if (emailExists) {
-      setApiError("El correo electrónico ya se encuentra registrado");
+  const handleVerifyEmailAndRegister = async () => {
+    if (verificationCode !== expectedCode) {
+      setApiError("El código de verificación es incorrecto.");
       return;
     }
 
-    const hashedPassword = bcrypt.hashSync(data.password.trim(), 10);
-    const userId = (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : `u-${Date.now()}`;
+    try {
+      const data = tempRegData;
+      await storageService.registerUser(
+        data.name, 
+        data.email, 
+        data.password, 
+        avatarBase64, 
+        data.securityQuestion, 
+        data.securityAnswer
+      );
+      
+      resetRegForm();
+      setAvatarBase64('');
+      setIsRegister(false);
+      setIsVerifyingEmail(false);
+      setTempRegData(null);
+      setVerificationCode('');
+      setSuccessMsg("¡Registro exitoso! Por favor inicia sesión con tus credenciales.");
+      setApiError(null);
+    } catch (err: any) {
+      setApiError(err.message || 'Error al registrar usuario');
+    }
+  };
 
-    const newUser: User = {
-      id: userId,
-      name: cleanName,
-      email: cleanEmail,
-      password: hashedPassword,
-      role: data.role === 'admin' ? 'admin' : 'user',
-      avatar: avatarBase64 || ''
-    };
-
-    users.push(newUser);
-    localStorage.setItem('users_database', JSON.stringify(users));
+  const handleForgotPasswordSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setApiError(null);
+    setSuccessMsg(null);
     
-    resetRegForm();
-    setAvatarBase64('');
-    setIsRegister(false);
-    setSuccessMsg("¡Registro exitoso! Por favor inicia sesión con tus credenciales.");
+    try {
+      if (fpStep === 1) {
+        // Validar correo y obtener pregunta
+        const question = storageService.getUserSecurityQuestion(fpEmail);
+        setFpQuestion(question);
+        setFpStep(2);
+      } else if (fpStep === 2) {
+        // Validar respuesta y cambiar contraseña
+        await storageService.resetPassword(fpEmail, fpAnswer, fpNewPassword);
+        setSuccessMsg('Contraseña actualizada correctamente. Puedes iniciar sesión.');
+        setIsForgotPassword(false);
+        setFpStep(1);
+        setFpEmail('');
+        setFpAnswer('');
+        setFpNewPassword('');
+      }
+    } catch (err: any) {
+      setApiError(err.message);
+    }
   };
 
   const handleQuickLogin = (email: string) => {
@@ -250,23 +233,129 @@ export const Auth: React.FC<AuthProps> = ({ onLoginSuccess }) => {
           )}
         </AnimatePresence>
 
-        <div className={styles.tabHeader}>
-          <button 
-            className={`${styles.tabBtn} ${!isRegister ? styles.tabBtnActive : ''}`}
-            onClick={() => { setIsRegister(false); setApiError(null); setSuccessMsg(null); }}
-          >
-            Ingresar
-          </button>
-          <button 
-            className={`${styles.tabBtn} ${isRegister ? styles.tabBtnActive : ''}`}
-            onClick={() => { setIsRegister(true); setApiError(null); setSuccessMsg(null); }}
-          >
-            Registrarse
-          </button>
-        </div>
+        {!isForgotPassword && !isVerifyingEmail && (
+          <div className={styles.tabHeader}>
+            <button 
+              className={`${styles.tabBtn} ${!isRegister ? styles.tabBtnActive : ''}`}
+              onClick={() => { setIsRegister(false); setApiError(null); setSuccessMsg(null); }}
+            >
+              Ingresar
+            </button>
+            <button 
+              className={`${styles.tabBtn} ${isRegister ? styles.tabBtnActive : ''}`}
+              onClick={() => { setIsRegister(true); setApiError(null); setSuccessMsg(null); }}
+            >
+              Registrarse
+            </button>
+          </div>
+        )}
 
         <div className={styles.formContent}>
-          {!isRegister ? (
+          {isForgotPassword ? (
+            <form onSubmit={handleForgotPasswordSubmit} className={styles.authForm}>
+              <h3 className="text-center mb-4">Recuperar Contraseña</h3>
+              
+              {fpStep === 1 ? (
+                <div className={styles.formGroup}>
+                  <label className={styles.fieldLabel}>Ingresa tu Correo Electrónico:</label>
+                  <div className={styles.inputWrapper}>
+                    <FaEnvelope className={styles.inputIcon} />
+                    <input 
+                      type="email" 
+                      placeholder="ejemplo@correo.com" 
+                      className={styles.authInput}
+                      value={fpEmail}
+                      onChange={(e) => setFpEmail(e.target.value)}
+                      required
+                    />
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <div className={styles.formGroup}>
+                    <label className={styles.fieldLabel}>Pregunta de Seguridad:</label>
+                    <p className="fw-bold mb-2 text-primary">{fpQuestion}</p>
+                    <div className={styles.inputWrapper}>
+                      <FaShieldAlt className={styles.inputIcon} />
+                      <input 
+                        type="text" 
+                        placeholder="Tu respuesta" 
+                        className={styles.authInput}
+                        value={fpAnswer}
+                        onChange={(e) => setFpAnswer(e.target.value)}
+                        required
+                      />
+                    </div>
+                  </div>
+                  <div className={styles.formGroup}>
+                    <label className={styles.fieldLabel}>Nueva Contraseña:</label>
+                    <div className={styles.inputWrapper}>
+                      <FaLock className={styles.inputIcon} />
+                      <input 
+                        type="password" 
+                        placeholder="Mínimo 6 caracteres" 
+                        className={styles.authInput}
+                        value={fpNewPassword}
+                        onChange={(e) => setFpNewPassword(e.target.value)}
+                        required
+                        minLength={6}
+                      />
+                    </div>
+                  </div>
+                </>
+              )}
+
+              <button type="submit" className="btn-duo-3d btn-duo-primary w-100 mt-3">
+                {fpStep === 1 ? 'Continuar' : 'Restablecer Contraseña'}
+              </button>
+              
+              <button 
+                type="button" 
+                className="btn btn-link text-decoration-none text-muted w-100 mt-2"
+                onClick={() => { setIsForgotPassword(false); setFpStep(1); setApiError(null); }}
+              >
+                Volver a Iniciar Sesión
+              </button>
+            </form>
+          ) : isVerifyingEmail ? (
+            <div className={styles.authForm}>
+              <h3 className="text-center mb-4">Validar Correo</h3>
+              <p className="text-center text-muted mb-4">
+                Ingresa el código de 6 dígitos que enviamos a tu correo para verificar tu cuenta.
+              </p>
+              
+              <div className={styles.formGroup}>
+                <div className={styles.inputWrapper}>
+                  <FaShieldAlt className={styles.inputIcon} />
+                  <input 
+                    type="text" 
+                    placeholder="Código de verificación" 
+                    className={styles.authInput}
+                    value={verificationCode}
+                    onChange={(e) => setVerificationCode(e.target.value)}
+                    maxLength={6}
+                  />
+                </div>
+              </div>
+              
+              <button 
+                type="button" 
+                className="btn-duo-3d btn-duo-primary w-100 mt-3"
+                onClick={handleVerifyEmailAndRegister}
+                disabled={verificationCode.length !== 6}
+              >
+                Verificar y Completar Registro
+              </button>
+              
+              <button 
+                type="button" 
+                className="btn btn-link text-decoration-none text-muted w-100 mt-2"
+                onClick={() => setIsVerifyingEmail(false)}
+              >
+                Cancelar
+              </button>
+            </div>
+          ) : !isRegister ? (
             <form onSubmit={handleLoginSubmit(onLogin)} className={styles.authForm}>
               <div className={styles.formGroup}>
                 <label className={styles.fieldLabel}>Correo Electrónico:</label>
@@ -306,6 +395,14 @@ export const Auth: React.FC<AuthProps> = ({ onLoginSuccess }) => {
                 disabled={!isLoginValid}
               >
                 Iniciar Sesión
+              </button>
+
+              <button 
+                type="button" 
+                className="btn btn-link text-decoration-none text-muted w-100 mt-2"
+                onClick={() => { setIsForgotPassword(true); setApiError(null); setSuccessMsg(null); }}
+              >
+                ¿Olvidaste tu contraseña?
               </button>
             </form>
           ) : (
@@ -355,6 +452,38 @@ export const Auth: React.FC<AuthProps> = ({ onLoginSuccess }) => {
                 </div>
                 {regErrors.password && (
                   <span className={styles.errorSpan}>{regErrors.password.message}</span>
+                )}
+              </div>
+
+              <div className={styles.formGroup}>
+                <label className={styles.fieldLabel}>Pregunta de Seguridad (Para recuperar clave):</label>
+                <div className={styles.inputWrapper}>
+                  <FaShieldAlt className={styles.inputIcon} />
+                  <input 
+                    type="text" 
+                    placeholder="Ej. Nombre de tu primera mascota" 
+                    className={`${styles.authInput} ${regErrors.securityQuestion ? styles.inputError : ''}`}
+                    {...regRegister("securityQuestion")}
+                  />
+                </div>
+                {regErrors.securityQuestion && (
+                  <span className={styles.errorSpan}>{regErrors.securityQuestion.message}</span>
+                )}
+              </div>
+
+              <div className={styles.formGroup}>
+                <label className={styles.fieldLabel}>Respuesta de Seguridad:</label>
+                <div className={styles.inputWrapper}>
+                  <FaLock className={styles.inputIcon} />
+                  <input 
+                    type="text" 
+                    placeholder="Respuesta secreta" 
+                    className={`${styles.authInput} ${regErrors.securityAnswer ? styles.inputError : ''}`}
+                    {...regRegister("securityAnswer")}
+                  />
+                </div>
+                {regErrors.securityAnswer && (
+                  <span className={styles.errorSpan}>{regErrors.securityAnswer.message}</span>
                 )}
               </div>
 

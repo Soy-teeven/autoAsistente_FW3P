@@ -7,6 +7,8 @@ export interface User {
   password: string; // Hash con bcryptjs
   role: UserRole;
   avatar?: string; // Base64
+  securityQuestion?: string;
+  securityAnswer?: string; // Hash con bcryptjs
 }
 
 export interface Piece {
@@ -32,6 +34,7 @@ export interface Vehicle {
   initialKm: number;
   currentKm: number;
   pieces: Piece[];
+  mileageHistory?: { date: string; km: number }[];
 }
 
 export interface MaintenanceRecord {
@@ -71,5 +74,16 @@ export interface AppNotification {
   message: string;
   type: 'warning' | 'danger';
   isRead: boolean;
+  createdAt: string;
+}
+
+export interface ShareRequest {
+  id: string;
+  vehicleId: string;
+  vehicleName: string;
+  fromUserId: string;
+  fromUserName: string;
+  toUserId: string;
+  status: 'pending' | 'accepted' | 'rejected';
   createdAt: string;
 }

@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FaBell, FaCheck, FaExclamationTriangle, FaCheckDouble } from 'react-icons/fa';
 import { Piece } from '../../types';
+import { storageService } from '../../services/storageService';
 
 import styles from './NotificationCenter.module.css';
 
@@ -9,25 +10,91 @@ import styles from './NotificationCenter.module.css';
 interface NotificationCenterProps {
   pieces: Piece[];
   currentKm: number;
+  vehicleId: string;
   readIds: string[];
   onMarkAsRead: (id: string) => void;
   onMarkAllAsRead: (ids: string[]) => void;
   onSelectNotification: (pieceId: string, category: string) => void;
+  currentUserId: string;
+  onShareRequestAction: () => void;
+  isAdmin?: boolean;
+  allVehicles?: import('../../types').Vehicle[];
 }
 
 export const NotificationCenter: React.FC<NotificationCenterProps> = ({
   pieces,
   currentKm,
+  vehicleId,
   readIds,
   onMarkAsRead,
   onMarkAllAsRead,
-  onSelectNotification
+  onSelectNotification,
+  currentUserId,
+  onShareRequestAction,
+  isAdmin,
+  allVehicles = []
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const [shareRequests, setShareRequests] = useState<import('../../types').ShareRequest[]>([]);
+  const [adminGlobalAlerts, setAdminGlobalAlerts] = useState<any[]>([]);
+  
+  const loadShareRequests = () => {
+    try {
+      const allReqs = storageService.getShareRequests();
+      setShareRequests(allReqs.filter((r: any) => r.toUserId === currentUserId && r.status === 'pending'));
+
+      if (isAdmin) {
+        // Usa allVehicles si está disponible, de lo contrario lee de storage
+        const vehicles = allVehicles.length > 0 ? allVehicles : storageService.getVehicles();
+        const storedUsers = localStorage.getItem('users_database');
+        const users = storedUsers ? JSON.parse(storedUsers) : [];
+        const globalAlerts: any[] = [];
+
+        vehicles.forEach((v: import('../../types').Vehicle) => {
+          v.pieces.forEach(p => {
+            const safeCurrentKm = Number.isFinite(v.currentKm) ? v.currentKm : 0;
+            const safeLastChangeKm = Number.isFinite(p.lastChangeKm) ? p.lastChangeKm : 0;
+            const kmDriven = Math.max(0, safeCurrentKm - safeLastChangeKm);
+            const wearPercentage = Math.round(Math.max((kmDriven / (p.lifeKm || 10000)), 0) * 100);
+            
+            if (wearPercentage >= 75) {
+              const owner = users.find((u: any) => u.id === v.userId);
+              globalAlerts.push({
+                id: p.id + v.id,
+                name: p.name,
+                category: p.category,
+                wearPercentage,
+                status: wearPercentage >= 90 ? 'red' : 'yellow',
+                isRead: Array.isArray(readIds) && readIds.includes(p.id + v.id),
+                vehicleName: v.name,
+                ownerName: owner ? owner.name : 'Desconocido',
+                ownerEmail: owner ? owner.email : ''
+              });
+            }
+          });
+        });
+
+        setAdminGlobalAlerts(globalAlerts.sort((a, b) => b.wearPercentage - a.wearPercentage));
+      }
+    } catch (e) {
+      // Ignore
+    }
+  };
+
+  useEffect(() => {
+    loadShareRequests();
+  }, [currentUserId, pieces, currentKm, isAdmin, allVehicles]); // Recargar cuando los vehículos cambien
+
+  useEffect(() => {
+    if (isOpen) {
+      loadShareRequests();
+    }
+  }, [isOpen]);
 
   // RF10 & RF11: Alertas automáticas para amarillo (warning) y rojo (danger) con filtrado seguro
-  const alerts = useMemo(() => {
+  const userAlerts = useMemo(() => {
+    if (isAdmin) return []; // El admin usa adminGlobalAlerts en su lugar
     if (!Array.isArray(pieces)) return [];
 
     return pieces.map(piece => {
@@ -53,7 +120,25 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
       }
 
       const wearTimeRatio = monthsElapsed / safeLifeMonths;
-      const wearPercentage = Math.round(Math.max(wearKmRatio, wearTimeRatio) * 100);
+      let wearPercentage = Math.round(Math.max(wearKmRatio, wearTimeRatio) * 100);
+
+      // Calcular proyección basada en el promedio diario si hay datos
+      if (vehicleId) {
+        try {
+          const avgDaily = storageService.getDailyAverageKm(vehicleId);
+          if (avgDaily > 0) {
+            // Proyección a 7 días
+            const projectedKmDriven = kmDriven + (avgDaily * 7);
+            const projectedWearPercentage = Math.round((projectedKmDriven / safeLifeKm) * 100);
+            if (projectedWearPercentage > wearPercentage) {
+              wearPercentage = projectedWearPercentage;
+            }
+          }
+        } catch (e) {
+          // Fallback a cálculo normal
+        }
+      }
+
       const boundedWear = Math.max(0, Math.min(100, isNaN(wearPercentage) ? 0 : wearPercentage));
 
       let status: 'yellow' | 'red' | null = null;
@@ -78,12 +163,14 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
       if (a.status !== b.status) return a.status === 'red' ? -1 : 1;
       return b.wearPercentage - a.wearPercentage;
     });
-  }, [pieces, currentKm, readIds]);
+  }, [pieces, currentKm, readIds, isAdmin]);
+
+  const displayAlerts = isAdmin ? adminGlobalAlerts : userAlerts;
 
   // Contador de alertas no leídas para el Badge
   const unreadCount = useMemo(() => {
-    return alerts.filter(a => !a.isRead).length;
-  }, [alerts]);
+    return displayAlerts.filter(a => !a.isRead).length + shareRequests.length;
+  }, [displayAlerts, shareRequests]);
 
   // H3 - Control y libertad: Cerrar el menú haciendo clic fuera
   useEffect(() => {
@@ -104,9 +191,28 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
   };
 
   const handleMarkAll = () => {
-    const unreadAlertIds = alerts.filter(a => !a.isRead).map(a => a.id);
+    const unreadAlertIds = displayAlerts.filter(a => !a.isRead).map(a => a.id);
     if (unreadAlertIds.length > 0) {
       onMarkAllAsRead(unreadAlertIds);
+    }
+  };
+
+  const handleAcceptShare = (reqId: string) => {
+    try {
+      storageService.acceptShareRequest(reqId, currentUserId);
+      loadShareRequests();
+      onShareRequestAction();
+    } catch (e: any) {
+      alert(`Error al aceptar: ${e.message}`);
+    }
+  };
+
+  const handleRejectShare = (reqId: string) => {
+    try {
+      storageService.rejectShareRequest(reqId, currentUserId);
+      loadShareRequests();
+    } catch (e: any) {
+      alert(`Error al rechazar: ${e.message}`);
     }
   };
 
@@ -166,27 +272,52 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
 
             {/* Listado de alertas */}
             <div className={styles.notificationsList}>
-              {alerts.length > 0 ? (
-                alerts.map((alert) => {
+              {/* Solicitudes de Compartir */}
+              {shareRequests.map(req => (
+                <div key={req.id} className={`${styles.notificationItem} ${styles.itemUnread}`} style={{ borderLeft: '4px solid #007bff' }}>
+                  <div className={styles.itemContent} style={{ flexGrow: 1 }}>
+                    <div className={styles.itemTitle}>Invitación a vehículo</div>
+                    <div className={styles.itemMeta}>
+                      <span className="fw-bold">{req.fromUserName}</span> te invitó a ver "{req.vehicleName}"
+                    </div>
+                    <div className="d-flex gap-2 mt-2">
+                      <button className="btn btn-sm btn-primary w-50 py-1" onClick={() => handleAcceptShare(req.id)}>Aceptar</button>
+                      <button className="btn btn-sm btn-outline-secondary w-50 py-1" onClick={() => handleRejectShare(req.id)}>Rechazar</button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+
+              {displayAlerts.length > 0 || shareRequests.length > 0 ? (
+                displayAlerts.map((alert) => {
                   const alertColorClass = alert.status === 'red' ? styles.indicatorRed : styles.indicatorYellow;
                   
                   return (
-                    // H6 - Reconocimiento antes que recuerdo: mostrar datos explícitos del desgaste
                     <div 
                       key={alert.id} 
                       className={`${styles.notificationItem} ${alert.isRead ? styles.itemRead : styles.itemUnread}`}
-                      onClick={() => handleAlertClick(alert.id, alert.category)}
+                      onClick={() => !isAdmin && handleAlertClick(alert.id, alert.category)}
                       role="button"
                       tabIndex={0}
                       title={`Ir a la pieza: ${alert.name}`}
                     >
                       <div className={`${styles.statusIndicator} ${alertColorClass}`} aria-hidden="true" />
                       <div className={styles.itemContent}>
-                        <div className={styles.itemTitle}>{alert.name}</div>
+                        <div className={styles.itemTitle}>
+                          {isAdmin ? `${alert.vehicleName} (${alert.ownerName}) - ${alert.name}` : alert.name}
+                        </div>
                         <div className={styles.itemMeta}>
                           <FaExclamationTriangle className="me-1 text-muted" />
                           Desgaste del <span className="fw-bold">{alert.wearPercentage}%</span>
                         </div>
+                        <p className={styles.itemMeta} style={{ fontSize: '0.8rem', marginTop: '4px' }}>
+                          {isAdmin 
+                            ? `La pieza está ${alert.status === 'red' ? 'vencida' : 'próxima a vencer'}.`
+                            : alert.status === 'red'
+                            ? `Ha superado su límite de desgaste recomendado. Por favor, programe un mantenimiento urgente.`
+                            : `Está próxima a requerir un cambio. Vaya planificando su mantenimiento.`
+                          }
+                        </p>
                       </div>
                       {!alert.isRead && (
                         <button 
@@ -209,7 +340,7 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
                 <div className={styles.emptyState}>
                   <FaBell className={styles.emptyIcon} />
                   <p className="fw-bold m-0">¡Todo en orden!</p>
-                  <p className="text-muted small">No hay alertas de desgaste pendientes.</p>
+                  <p className="text-muted small">No hay notificaciones pendientes.</p>
                 </div>
               )}
             </div>

@@ -26,18 +26,17 @@ interface PieceEditModalProps {
 }
 
 const pieceSchema = z.object({
-  lifeKm: z.coerce.number().positive({ message: "La vida útil en km debe ser mayor a 0" }),
-  lastChangeKm: z.coerce.number().nonnegative({ message: "El último cambio en km no puede ser negativo" }),
+  lifeKm: z.union([z.string(), z.number()])
+    .refine(val => val !== '' && !isNaN(Number(val)) && Number(val) > 0, { message: "Requerido (mayor a 0)" })
+    .transform(val => Number(val)),
+  lifeMonths: z.union([z.string(), z.number()])
+    .refine(val => val !== '' && !isNaN(Number(val)) && Number(val) > 0, { message: "Requerido (mayor a 0)" })
+    .transform(val => Number(val)),
+  lastChangeKm: z.union([z.string(), z.number()])
+    .refine(val => val !== '' && !isNaN(Number(val)) && Number(val) >= 0, { message: "Requerido (no negativo)" })
+    .transform(val => Number(val)),
   lastChangeDate: z.string()
-    .min(1, { message: "La fecha de último cambio es obligatoria" })
-    .refine(val => {
-      const date = new Date(val);
-      if (isNaN(date.getTime())) return false;
-      const minDate = new Date('1885-01-01');
-      const maxDate = new Date();
-      maxDate.setHours(23, 59, 59, 999);
-      return date >= minDate && date <= maxDate;
-    }, { message: "La fecha no debe ser futura ni anterior a 1885" })
+    .min(1, { message: "La fecha es obligatoria" })
 });
 
 type PieceFormValues = z.infer<typeof pieceSchema>;
@@ -48,6 +47,8 @@ export const PieceEditModal: React.FC<PieceEditModalProps> = ({
   piece,
   onUpdatePiece
 }) => {
+  const isNewPiece = piece.id.startsWith('p-new-');
+
   const {
     register,
     handleSubmit,
@@ -56,9 +57,10 @@ export const PieceEditModal: React.FC<PieceEditModalProps> = ({
     resolver: zodResolver(pieceSchema),
     mode: "onChange",
     defaultValues: {
-      lifeKm: piece.lifeKm,
-      lastChangeKm: piece.lastChangeKm,
-      lastChangeDate: piece.lastChangeDate
+      lifeKm: isNewPiece ? ('' as any) : piece.lifeKm,
+      lifeMonths: isNewPiece ? ('' as any) : piece.lifeMonths,
+      lastChangeKm: isNewPiece ? ('' as any) : piece.lastChangeKm,
+      lastChangeDate: isNewPiece ? '' : piece.lastChangeDate
     }
   });
 
@@ -66,10 +68,11 @@ export const PieceEditModal: React.FC<PieceEditModalProps> = ({
     onUpdatePiece({
       ...piece,
       lifeKm: data.lifeKm,
+      lifeMonths: data.lifeMonths,
       lastChangeKm: data.lastChangeKm,
       lastChangeDate: data.lastChangeDate
     });
-    alert(`Tolerancias de fábrica y límites actualizados para "${piece.name}".`);
+    alert(`Tolerancias de fábrica actualizadas para "${piece.name}".`);
     onClose();
   };
 
@@ -114,10 +117,25 @@ export const PieceEditModal: React.FC<PieceEditModalProps> = ({
                 <input 
                   type="number" 
                   className={styles.numberInput}
+                  placeholder="Ej: 50000"
                   {...register("lifeKm")}
                 />
               </div>
               {errors.lifeKm && <span className={styles.errorMessage}>{errors.lifeKm.message}</span>}
+            </div>
+
+            <div className="col-12">
+              <label className={styles.inputLabel}>Vida Útil de Fábrica (Meses):</label>
+              <div className={styles.inputWrapper}>
+                <FaCalendarAlt className={styles.inputIcon} />
+                <input 
+                  type="number" 
+                  className={styles.numberInput}
+                  placeholder="Ej: 36"
+                  {...register("lifeMonths")}
+                />
+              </div>
+              {errors.lifeMonths && <span className={styles.errorMessage}>{errors.lifeMonths.message}</span>}
             </div>
           </div>
 
@@ -129,6 +147,7 @@ export const PieceEditModal: React.FC<PieceEditModalProps> = ({
                 <input 
                   type="number" 
                   className={styles.numberInput}
+                  placeholder="Ej: 85000"
                   {...register("lastChangeKm")}
                 />
               </div>
@@ -142,6 +161,7 @@ export const PieceEditModal: React.FC<PieceEditModalProps> = ({
                 <input 
                   type="date" 
                   className={styles.numberInput}
+                  max={new Date().toISOString().split('T')[0]}
                   {...register("lastChangeDate")}
                 />
               </div>

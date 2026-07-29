@@ -106,6 +106,11 @@ export const MileageModal: React.FC<MileageModalProps> = ({
                 placeholder={currentKm.toString()}
                 className={`${styles.numberInput} ${errors.mileage ? styles.inputError : ''}`}
                 {...register("mileage")}
+                onKeyDown={(e) => {
+                  if (['e', 'E', '+', '-', '.'].includes(e.key)) {
+                    e.preventDefault();
+                  }
+                }}
               />
               <span className={styles.unitSpan}>km</span>
             </div>

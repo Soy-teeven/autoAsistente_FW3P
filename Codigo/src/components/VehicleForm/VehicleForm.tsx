@@ -37,6 +37,7 @@ const createVehicleSchema = (existingVehicles: Vehicle[]) => z.object({
       message: "Este VIN ya está registrado en otro vehículo"
     }),
   initialKm: z.coerce.number({ invalid_type_error: "Debe ser un número" })
+    .int({ message: "El kilometraje debe ser un número entero" })
     .nonnegative({ message: "El kilometraje de registro no puede ser negativo" })
     .max(1000000, { message: "El kilometraje inicial parece demasiado alto" })
 });
@@ -235,6 +236,11 @@ export const VehicleForm: React.FC<VehicleFormProps> = ({
                     placeholder="Ej. 0 o 35000" 
                     className={`${styles.textInput} ${errors.initialKm ? styles.inputError : ''}`}
                     {...register("initialKm")}
+                    onKeyDown={(e) => {
+                      if (['e', 'E', '+', '-', '.'].includes(e.key)) {
+                        e.preventDefault();
+                      }
+                    }}
                   />
                   <span className={styles.inputUnit}>km</span>
                 </div>
